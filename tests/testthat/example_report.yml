@@ -1,0 +1,28 @@
+requester: the requester
+author: the author
+
+views:
+  helper:
+    query: >-
+      SELECT
+         thing.name AS thing,
+         thing.number,
+         data.value
+      FROM data JOIN thing ON data.thing = thing.id
+data:
+  dat:
+    query: >-
+      SELECT *
+      FROM helper
+      WHERE
+        helper.value >= ?minvalue
+
+parameters:
+  minvalue: ~
+
+script: script.R
+
+artefacts:
+  staticgraph:
+    filenames: mygraph.png
+    description: A graph of coverage over time

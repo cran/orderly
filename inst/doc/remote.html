@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+
+<title>OrderlyWeb</title>
+
+<script type="text/javascript">
+window.onload = function() {
+  var imgs = document.getElementsByTagName('img'), i, img;
+  for (i = 0; i < imgs.length; i++) {
+    img = imgs[i];
+    // center an image if it is the only element of its parent
+    if (img.parentElement.childElementCount === 1)
+      img.parentElement.style.textAlign = 'center';
+  }
+};
+</script>
+
+
+
+
+
+<style type="text/css">
+body, td {
+   font-family: sans-serif;
+   background-color: white;
+   font-size: 13px;
+}
+
+body {
+  max-width: 800px;
+  margin: auto;
+  padding: 1em;
+  line-height: 20px;
+}
+
+tt, code, pre {
+   font-family: 'DejaVu Sans Mono', 'Droid Sans Mono', 'Lucida Console', Consolas, Monaco, monospace;
+}
+
+h1 {
+   font-size:2.2em;
+}
+
+h2 {
+   font-size:1.8em;
+}
+
+h3 {
+   font-size:1.4em;
+}
+
+h4 {
+   font-size:1.0em;
+}
+
+h5 {
+   font-size:0.9em;
+}
+
+h6 {
+   font-size:0.8em;
+}
+
+a:visited {
+   color: rgb(50%, 0%, 50%);
+}
+
+pre, img {
+  max-width: 100%;
+}
+pre {
+  overflow-x: auto;
+}
+pre code {
+   display: block; padding: 0.5em;
+}
+
+code {
+  font-size: 92%;
+  border: 1px solid #ccc;
+}
+
+code[class] {
+  background-color: #F8F8F8;
+}
+
+table, td, th {
+  border: none;
+}
+
+blockquote {
+   color:#666666;
+   margin:0;
+   padding-left: 1em;
+   border-left: 0.5em #EEE solid;
+}
+
+hr {
+   height: 0px;
+   border-bottom: none;
+   border-top-width: thin;
+   border-top-style: dotted;
+   border-top-color: #999999;
+}
+
+@media print {
+   * {
+      background: transparent !important;
+      color: black !important;
+      filter:none !important;
+      -ms-filter: none !important;
+   }
+
+   body {
+      font-size:12pt;
+      max-width:100%;
+   }
+
+   a, a:visited {
+      text-decoration: underline;
+   }
+
+   hr {
+      visibility: hidden;
+      page-break-before: always;
+   }
+
+   pre, blockquote {
+      padding-right: 1em;
+      page-break-inside: avoid;
+   }
+
+   tr, img {
+      page-break-inside: avoid;
+   }
+
+   img {
+      max-width: 100% !important;
+   }
+
+   @page :left {
+      margin: 15mm 20mm 15mm 10mm;
+   }
+
+   @page :right {
+      margin: 15mm 10mm 15mm 20mm;
+   }
+
+   p, h2, h3 {
+      orphans: 3; widows: 3;
+   }
+
+   h2, h3 {
+      page-break-after: avoid;
+   }
+}
+</style>
+
+
+
+</head>
+
+<body>
+<p>Orderly supports a centralised workflow, where a central server holds the canonical version of a report.  In order to make this workflow work, we need a number of things:</p>
+
+<ul>
+<li>To be able to run a report on a central server</li>
+<li>To be able to get copies of reports from the central server in order to use them as dependencies of locally run reports</li>
+<li>To be able to share these centrally run reports with someone</li>
+</ul>
+
+<p>To make this workflow work, we have developed some additional software.</p>
+
+<p>First, we have a docker-based server system called <a href="https://github.com/vimc/orderly-web">OrderlyWeb</a> which can be deployed onto a server.  We will communicate with this server over https using a package <a href="https://github.com/vimc/orderlyweb"><code>orderlyweb</code></a> which will follow <code>orderly</code> onto CRAN.</p>
+
+<h2>OrderlyWeb</h2>
+
+<p>The OrderlyWeb server software provides a number of things</p>
+
+<ol>
+<li>A persistent copy of R running <code>orderly</code> that can run reports as needed using the <code>orderly::orderly_runner</code> function</li>
+<li>A web server that exposes a user-friendly web portal showing versions of orderly reports and an http api (this application is written in <a href="https://kotlinlang.org">Kotlin</a>)</li>
+<li>A <a href="https://en.wikipedia.org/wiki/Reverse_proxy">reverse proxy</a> used to secure the application with https</li>
+</ol>
+
+<p>A <a href="https://raw.githubusercontent.com/vimc/montagu-machine/master/docs/diagrams/OrderlyWeb%20architecture.png">diagram may help show how the pieces fit together</a></p>
+
+<p>Getting OrderlyWeb installed requires a little work, and you will need access to an appropriate server running docker, our <a href="https://github.com/vimc/orderly-web-deploy/">python-based deployment tool</a>, and TLS certificates for the server that you are using.  We recommend using <a href="https://www.vaultproject.io">vault</a> for storing certificates and any secrets used in deployment.</p>
+
+<p>OrderlyWeb will use GitHub for authentication, the setup for which <a href="https://github.com/vimc/orderly-web/blob/master/docs/auth.md#authenticating-with-github">is described here</a>.</p>
+
+<h2>Configuring <code>orderly</code> to talk to OrderlyWeb</h2>
+
+<p>Once OrderlyWeb is running, we can tell <code>orderly</code> about it by adding an appropriate setting to the <code>orderly_config.yml</code> file.  For example, if you had one testing and one production instance</p>
+
+<pre><code class="yaml">remote:
+  testing:
+    driver: orderlyweb::orderlyweb_remote
+    args:
+      host: testing.example.com
+      port: 443
+      token: $GITHUB_TOKEN
+  production:
+    driver: orderlyweb::orderlyweb_remote
+    args:
+      host: production.example.com
+      port: 443
+      token: $GITHUB_TOKEN
+</code></pre>
+
+<p>where <code>$GITHUB_TOKEN</code> is an environment variable that holds a <a href="https://github.com/settings/tokens">GitHub token</a> with &ldquo;user&rdquo; scope.  The <code>testing</code> remote is listed first, and so will be the default one used in any remote-using command.</p>
+
+<h2>Interacting with the remote server</h2>
+
+<p>Several commands can interact with the remote server:</p>
+
+<ul>
+<li><code>orderly::orderly_run_remote</code> will run a report on a remote server, committing it immediately. This will save the log alongside the report.</li>
+<li><code>orderly::orderly_pull_archive</code> will pull a version of a report from a remote server</li>
+<li><code>orderly::orderly_pull_dependencies</code> will pull all the dependencies of a report from the remote server (i.e., versions of reports declared in the <code>depends:</code> section of a report)</li>
+</ul>
+
+<h2>Future developments</h2>
+
+<p>We hope that this system will become easier to deploy in future.  We use it internally on two projects with orderly archives that hold gigabytes of analyses, and it has evolved to meet our needs.  If you think it might work for you but can&#39;t get started, please get in touch.</p>
+
+</body>
+
+</html>
