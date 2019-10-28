@@ -1,6 +1,6 @@
 Package: orderly
 Title: Lightweight Reproducible Reporting
-Version: 1.0.1
+Version: 1.0.2
 Description: Order, create and store reports from R.  By defining a
     lightweight interface around the inputs and outputs of an
     analysis, a lot of the repetitive work for reproducible research
@@ -31,7 +31,7 @@ RoxygenNote: 6.1.1
 VignetteBuilder: knitr
 Language: en-GB
 NeedsCompilation: no
-Packaged: 2019-10-14 12:11:45 UTC; rich
+Packaged: 2019-10-28 12:19:42 UTC; rfitzjoh
 Author: Rich FitzJohn [aut, cre],
   Robert Ashton [aut],
   Alex Hill [aut],
@@ -42,4 +42,4 @@ Author: Rich FitzJohn [aut, cre],
   Imperial College of Science, Technology and Medicine [cph]
 Maintainer: Rich FitzJohn <rich.fitzjohn@gmail.com>
 Repository: CRAN
-Date/Publication: 2019-10-17 08:10:08 UTC
+Date/Publication: 2019-10-28 12:40:03 UTC

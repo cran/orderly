@@ -1,256 +1,350 @@
 <!DOCTYPE html>
-<html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 
-<title>Introduction</title>
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
 
-<script type="text/javascript">
-window.onload = function() {
-  var imgs = document.getElementsByTagName('img'), i, img;
-  for (i = 0; i < imgs.length; i++) {
-    img = imgs[i];
-    // center an image if it is the only element of its parent
-    if (img.parentElement.childElementCount === 1)
-      img.parentElement.style.textAlign = 'center';
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<meta name="author" content="Rich FitzJohn" />
+
+<meta name="date" content="2019-10-28" />
+
+<title>orderly</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css" data-origin="pandoc">
+a.sourceLine { display: inline-block; line-height: 1.25; }
+a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
+a.sourceLine:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; position: relative; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+code.sourceCode { white-space: pre-wrap; }
+a.sourceLine { text-indent: -1em; padding-left: 1em; }
+}
+pre.numberSource a.sourceLine
+  { position: relative; left: -4em; }
+pre.numberSource a.sourceLine::before
+  { content: attr(title);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; pointer-events: all; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
   }
-};
-</script>
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {  }
+@media screen {
+a.sourceLine::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
 
-<!-- Styles for R syntax highlighter -->
-<style type="text/css">
-   pre .operator,
-   pre .paren {
-     color: rgb(104, 118, 135)
-   }
-
-   pre .literal {
-     color: #990073
-   }
-
-   pre .number {
-     color: #099;
-   }
-
-   pre .comment {
-     color: #998;
-     font-style: italic
-   }
-
-   pre .keyword {
-     color: #900;
-     font-weight: bold
-   }
-
-   pre .identifier {
-     color: rgb(0, 0, 0);
-   }
-
-   pre .string {
-     color: #d14;
-   }
 </style>
-
-<!-- R syntax highlighter -->
-<script type="text/javascript">
-var hljs=new function(){function m(p){return p.replace(/&/gm,"&amp;").replace(/</gm,"&lt;")}function f(r,q,p){return RegExp(q,"m"+(r.cI?"i":"")+(p?"g":""))}function b(r){for(var p=0;p<r.childNodes.length;p++){var q=r.childNodes[p];if(q.nodeName=="CODE"){return q}if(!(q.nodeType==3&&q.nodeValue.match(/\s+/))){break}}}function h(t,s){var p="";for(var r=0;r<t.childNodes.length;r++){if(t.childNodes[r].nodeType==3){var q=t.childNodes[r].nodeValue;if(s){q=q.replace(/\n/g,"")}p+=q}else{if(t.childNodes[r].nodeName=="BR"){p+="\n"}else{p+=h(t.childNodes[r])}}}if(/MSIE [678]/.test(navigator.userAgent)){p=p.replace(/\r/g,"\n")}return p}function a(s){var r=s.className.split(/\s+/);r=r.concat(s.parentNode.className.split(/\s+/));for(var q=0;q<r.length;q++){var p=r[q].replace(/^language-/,"");if(e[p]){return p}}}function c(q){var p=[];(function(s,t){for(var r=0;r<s.childNodes.length;r++){if(s.childNodes[r].nodeType==3){t+=s.childNodes[r].nodeValue.length}else{if(s.childNodes[r].nodeName=="BR"){t+=1}else{if(s.childNodes[r].nodeType==1){p.push({event:"start",offset:t,node:s.childNodes[r]});t=arguments.callee(s.childNodes[r],t);p.push({event:"stop",offset:t,node:s.childNodes[r]})}}}}return t})(q,0);return p}function k(y,w,x){var q=0;var z="";var s=[];function u(){if(y.length&&w.length){if(y[0].offset!=w[0].offset){return(y[0].offset<w[0].offset)?y:w}else{return w[0].event=="start"?y:w}}else{return y.length?y:w}}function t(D){var A="<"+D.nodeName.toLowerCase();for(var B=0;B<D.attributes.length;B++){var C=D.attributes[B];A+=" "+C.nodeName.toLowerCase();if(C.value!==undefined&&C.value!==false&&C.value!==null){A+='="'+m(C.value)+'"'}}return A+">"}while(y.length||w.length){var v=u().splice(0,1)[0];z+=m(x.substr(q,v.offset-q));q=v.offset;if(v.event=="start"){z+=t(v.node);s.push(v.node)}else{if(v.event=="stop"){var p,r=s.length;do{r--;p=s[r];z+=("</"+p.nodeName.toLowerCase()+">")}while(p!=v.node);s.splice(r,1);while(r<s.length){z+=t(s[r]);r++}}}}return z+m(x.substr(q))}function j(){function q(x,y,v){if(x.compiled){return}var u;var s=[];if(x.k){x.lR=f(y,x.l||hljs.IR,true);for(var w in x.k){if(!x.k.hasOwnProperty(w)){continue}if(x.k[w] instanceof Object){u=x.k[w]}else{u=x.k;w="keyword"}for(var r in u){if(!u.hasOwnProperty(r)){continue}x.k[r]=[w,u[r]];s.push(r)}}}if(!v){if(x.bWK){x.b="\\b("+s.join("|")+")\\s"}x.bR=f(y,x.b?x.b:"\\B|\\b");if(!x.e&&!x.eW){x.e="\\B|\\b"}if(x.e){x.eR=f(y,x.e)}}if(x.i){x.iR=f(y,x.i)}if(x.r===undefined){x.r=1}if(!x.c){x.c=[]}x.compiled=true;for(var t=0;t<x.c.length;t++){if(x.c[t]=="self"){x.c[t]=x}q(x.c[t],y,false)}if(x.starts){q(x.starts,y,false)}}for(var p in e){if(!e.hasOwnProperty(p)){continue}q(e[p].dM,e[p],true)}}function d(B,C){if(!j.called){j();j.called=true}function q(r,M){for(var L=0;L<M.c.length;L++){if((M.c[L].bR.exec(r)||[null])[0]==r){return M.c[L]}}}function v(L,r){if(D[L].e&&D[L].eR.test(r)){return 1}if(D[L].eW){var M=v(L-1,r);return M?M+1:0}return 0}function w(r,L){return L.i&&L.iR.test(r)}function K(N,O){var M=[];for(var L=0;L<N.c.length;L++){M.push(N.c[L].b)}var r=D.length-1;do{if(D[r].e){M.push(D[r].e)}r--}while(D[r+1].eW);if(N.i){M.push(N.i)}return f(O,M.join("|"),true)}function p(M,L){var N=D[D.length-1];if(!N.t){N.t=K(N,E)}N.t.lastIndex=L;var r=N.t.exec(M);return r?[M.substr(L,r.index-L),r[0],false]:[M.substr(L),"",true]}function z(N,r){var L=E.cI?r[0].toLowerCase():r[0];var M=N.k[L];if(M&&M instanceof Array){return M}return false}function F(L,P){L=m(L);if(!P.k){return L}var r="";var O=0;P.lR.lastIndex=0;var M=P.lR.exec(L);while(M){r+=L.substr(O,M.index-O);var N=z(P,M);if(N){x+=N[1];r+='<span class="'+N[0]+'">'+M[0]+"</span>"}else{r+=M[0]}O=P.lR.lastIndex;M=P.lR.exec(L)}return r+L.substr(O,L.length-O)}function J(L,M){if(M.sL&&e[M.sL]){var r=d(M.sL,L);x+=r.keyword_count;return r.value}else{return F(L,M)}}function I(M,r){var L=M.cN?'<span class="'+M.cN+'">':"";if(M.rB){y+=L;M.buffer=""}else{if(M.eB){y+=m(r)+L;M.buffer=""}else{y+=L;M.buffer=r}}D.push(M);A+=M.r}function G(N,M,Q){var R=D[D.length-1];if(Q){y+=J(R.buffer+N,R);return false}var P=q(M,R);if(P){y+=J(R.buffer+N,R);I(P,M);return P.rB}var L=v(D.length-1,M);if(L){var O=R.cN?"</span>":"";if(R.rE){y+=J(R.buffer+N,R)+O}else{if(R.eE){y+=J(R.buffer+N,R)+O+m(M)}else{y+=J(R.buffer+N+M,R)+O}}while(L>1){O=D[D.length-2].cN?"</span>":"";y+=O;L--;D.length--}var r=D[D.length-1];D.length--;D[D.length-1].buffer="";if(r.starts){I(r.starts,"")}return R.rE}if(w(M,R)){throw"Illegal"}}var E=e[B];var D=[E.dM];var A=0;var x=0;var y="";try{var s,u=0;E.dM.buffer="";do{s=p(C,u);var t=G(s[0],s[1],s[2]);u+=s[0].length;if(!t){u+=s[1].length}}while(!s[2]);if(D.length>1){throw"Illegal"}return{r:A,keyword_count:x,value:y}}catch(H){if(H=="Illegal"){return{r:0,keyword_count:0,value:m(C)}}else{throw H}}}function g(t){var p={keyword_count:0,r:0,value:m(t)};var r=p;for(var q in e){if(!e.hasOwnProperty(q)){continue}var s=d(q,t);s.language=q;if(s.keyword_count+s.r>r.keyword_count+r.r){r=s}if(s.keyword_count+s.r>p.keyword_count+p.r){r=p;p=s}}if(r.language){p.second_best=r}return p}function i(r,q,p){if(q){r=r.replace(/^((<[^>]+>|\t)+)/gm,function(t,w,v,u){return w.replace(/\t/g,q)})}if(p){r=r.replace(/\n/g,"<br>")}return r}function n(t,w,r){var x=h(t,r);var v=a(t);var y,s;if(v){y=d(v,x)}else{return}var q=c(t);if(q.length){s=document.createElement("pre");s.innerHTML=y.value;y.value=k(q,c(s),x)}y.value=i(y.value,w,r);var u=t.className;if(!u.match("(\\s|^)(language-)?"+v+"(\\s|$)")){u=u?(u+" "+v):v}if(/MSIE [678]/.test(navigator.userAgent)&&t.tagName=="CODE"&&t.parentNode.tagName=="PRE"){s=t.parentNode;var p=document.createElement("div");p.innerHTML="<pre><code>"+y.value+"</code></pre>";t=p.firstChild.firstChild;p.firstChild.cN=s.cN;s.parentNode.replaceChild(p.firstChild,s)}else{t.innerHTML=y.value}t.className=u;t.result={language:v,kw:y.keyword_count,re:y.r};if(y.second_best){t.second_best={language:y.second_best.language,kw:y.second_best.keyword_count,re:y.second_best.r}}}function o(){if(o.called){return}o.called=true;var r=document.getElementsByTagName("pre");for(var p=0;p<r.length;p++){var q=b(r[p]);if(q){n(q,hljs.tabReplace)}}}function l(){if(window.addEventListener){window.addEventListener("DOMContentLoaded",o,false);window.addEventListener("load",o,false)}else{if(window.attachEvent){window.attachEvent("onload",o)}else{window.onload=o}}}var e={};this.LANGUAGES=e;this.highlight=d;this.highlightAuto=g;this.fixMarkup=i;this.highlightBlock=n;this.initHighlighting=o;this.initHighlightingOnLoad=l;this.IR="[a-zA-Z][a-zA-Z0-9_]*";this.UIR="[a-zA-Z_][a-zA-Z0-9_]*";this.NR="\\b\\d+(\\.\\d+)?";this.CNR="\\b(0[xX][a-fA-F0-9]+|(\\d+(\\.\\d*)?|\\.\\d+)([eE][-+]?\\d+)?)";this.BNR="\\b(0b[01]+)";this.RSR="!|!=|!==|%|%=|&|&&|&=|\\*|\\*=|\\+|\\+=|,|\\.|-|-=|/|/=|:|;|<|<<|<<=|<=|=|==|===|>|>=|>>|>>=|>>>|>>>=|\\?|\\[|\\{|\\(|\\^|\\^=|\\||\\|=|\\|\\||~";this.ER="(?![\\s\\S])";this.BE={b:"\\\\.",r:0};this.ASM={cN:"string",b:"'",e:"'",i:"\\n",c:[this.BE],r:0};this.QSM={cN:"string",b:'"',e:'"',i:"\\n",c:[this.BE],r:0};this.CLCM={cN:"comment",b:"//",e:"$"};this.CBLCLM={cN:"comment",b:"/\\*",e:"\\*/"};this.HCM={cN:"comment",b:"#",e:"$"};this.NM={cN:"number",b:this.NR,r:0};this.CNM={cN:"number",b:this.CNR,r:0};this.BNM={cN:"number",b:this.BNR,r:0};this.inherit=function(r,s){var p={};for(var q in r){p[q]=r[q]}if(s){for(var q in s){p[q]=s[q]}}return p}}();hljs.LANGUAGES.cpp=function(){var a={keyword:{"false":1,"int":1,"float":1,"while":1,"private":1,"char":1,"catch":1,"export":1,virtual:1,operator:2,sizeof:2,dynamic_cast:2,typedef:2,const_cast:2,"const":1,struct:1,"for":1,static_cast:2,union:1,namespace:1,unsigned:1,"long":1,"throw":1,"volatile":2,"static":1,"protected":1,bool:1,template:1,mutable:1,"if":1,"public":1,friend:2,"do":1,"return":1,"goto":1,auto:1,"void":2,"enum":1,"else":1,"break":1,"new":1,extern:1,using:1,"true":1,"class":1,asm:1,"case":1,typeid:1,"short":1,reinterpret_cast:2,"default":1,"double":1,register:1,explicit:1,signed:1,typename:1,"try":1,"this":1,"switch":1,"continue":1,wchar_t:1,inline:1,"delete":1,alignof:1,char16_t:1,char32_t:1,constexpr:1,decltype:1,noexcept:1,nullptr:1,static_assert:1,thread_local:1,restrict:1,_Bool:1,complex:1},built_in:{std:1,string:1,cin:1,cout:1,cerr:1,clog:1,stringstream:1,istringstream:1,ostringstream:1,auto_ptr:1,deque:1,list:1,queue:1,stack:1,vector:1,map:1,set:1,bitset:1,multiset:1,multimap:1,unordered_set:1,unordered_map:1,unordered_multiset:1,unordered_multimap:1,array:1,shared_ptr:1}};return{dM:{k:a,i:"</",c:[hljs.CLCM,hljs.CBLCLM,hljs.QSM,{cN:"string",b:"'\\\\?.",e:"'",i:"."},{cN:"number",b:"\\b(\\d+(\\.\\d*)?|\\.\\d+)(u|U|l|L|ul|UL|f|F)"},hljs.CNM,{cN:"preprocessor",b:"#",e:"$"},{cN:"stl_container",b:"\\b(deque|list|queue|stack|vector|map|set|bitset|multiset|multimap|unordered_map|unordered_set|unordered_multiset|unordered_multimap|array)\\s*<",e:">",k:a,r:10,c:["self"]}]}}}();hljs.LANGUAGES.r={dM:{c:[hljs.HCM,{cN:"number",b:"\\b0[xX][0-9a-fA-F]+[Li]?\\b",e:hljs.IMMEDIATE_RE,r:0},{cN:"number",b:"\\b\\d+(?:[eE][+\\-]?\\d*)?L\\b",e:hljs.IMMEDIATE_RE,r:0},{cN:"number",b:"\\b\\d+\\.(?!\\d)(?:i\\b)?",e:hljs.IMMEDIATE_RE,r:1},{cN:"number",b:"\\b\\d+(?:\\.\\d*)?(?:[eE][+\\-]?\\d*)?i?\\b",e:hljs.IMMEDIATE_RE,r:0},{cN:"number",b:"\\.\\d+(?:[eE][+\\-]?\\d*)?i?\\b",e:hljs.IMMEDIATE_RE,r:1},{cN:"keyword",b:"(?:tryCatch|library|setGeneric|setGroupGeneric)\\b",e:hljs.IMMEDIATE_RE,r:10},{cN:"keyword",b:"\\.\\.\\.",e:hljs.IMMEDIATE_RE,r:10},{cN:"keyword",b:"\\.\\.\\d+(?![\\w.])",e:hljs.IMMEDIATE_RE,r:10},{cN:"keyword",b:"\\b(?:function)",e:hljs.IMMEDIATE_RE,r:2},{cN:"keyword",b:"(?:if|in|break|next|repeat|else|for|return|switch|while|try|stop|warning|require|attach|detach|source|setMethod|setClass)\\b",e:hljs.IMMEDIATE_RE,r:1},{cN:"literal",b:"(?:NA|NA_integer_|NA_real_|NA_character_|NA_complex_)\\b",e:hljs.IMMEDIATE_RE,r:10},{cN:"literal",b:"(?:NULL|TRUE|FALSE|T|F|Inf|NaN)\\b",e:hljs.IMMEDIATE_RE,r:1},{cN:"identifier",b:"[a-zA-Z.][a-zA-Z0-9._]*\\b",e:hljs.IMMEDIATE_RE,r:0},{cN:"operator",b:"<\\-(?!\\s*\\d)",e:hljs.IMMEDIATE_RE,r:2},{cN:"operator",b:"\\->|<\\-",e:hljs.IMMEDIATE_RE,r:1},{cN:"operator",b:"%%|~",e:hljs.IMMEDIATE_RE},{cN:"operator",b:">=|<=|==|!=|\\|\\||&&|=|\\+|\\-|\\*|/|\\^|>|<|!|&|\\||\\$|:",e:hljs.IMMEDIATE_RE,r:0},{cN:"operator",b:"%",e:"%",i:"\\n",r:1},{cN:"identifier",b:"`",e:"`",r:0},{cN:"string",b:'"',e:'"',c:[hljs.BE],r:0},{cN:"string",b:"'",e:"'",c:[hljs.BE],r:0},{cN:"paren",b:"[[({\\])}]",e:hljs.IMMEDIATE_RE,r:0}]}};
-hljs.initHighlightingOnLoad();
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' || rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
 </script>
 
 
 
-<style type="text/css">
-body, td {
-   font-family: sans-serif;
-   background-color: white;
-   font-size: 13px;
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
 }
-
-body {
-  max-width: 800px;
-  margin: auto;
-  padding: 1em;
-  line-height: 20px;
+#header {
+text-align: center;
 }
-
-tt, code, pre {
-   font-family: 'DejaVu Sans Mono', 'Droid Sans Mono', 'Lucida Console', Consolas, Monaco, monospace;
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
 }
-
-h1 {
-   font-size:2.2em;
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
 }
-
-h2 {
-   font-size:1.8em;
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
 }
-
-h3 {
-   font-size:1.4em;
+#TOC ul ul {
+margin-left: -2em;
 }
-
-h4 {
-   font-size:1.0em;
+#TOC li {
+line-height: 16px;
 }
-
-h5 {
-   font-size:0.9em;
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
 }
-
-h6 {
-   font-size:0.8em;
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
 }
-
-a:visited {
-   color: rgb(50%, 0%, 50%);
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
 }
-
-pre, img {
-  max-width: 100%;
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
 }
 pre {
-  overflow-x: auto;
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
 }
-pre code {
-   display: block; padding: 0.5em;
+pre:not([class]) {
+background-color: #f7f7f7;
 }
-
 code {
-  font-size: 92%;
-  border: 1px solid #ccc;
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
 }
-
-code[class] {
-  background-color: #F8F8F8;
+p > code, li > code {
+padding: 2px 0px;
 }
-
-table, td, th {
-  border: none;
+div.figure {
+text-align: center;
 }
-
-blockquote {
-   color:#666666;
-   margin:0;
-   padding-left: 1em;
-   border-left: 0.5em #EEE solid;
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
 }
-
-hr {
-   height: 0px;
-   border-bottom: none;
-   border-top-width: thin;
-   border-top-style: dotted;
-   border-top-color: #999999;
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
 }
-
-@media print {
-   * {
-      background: transparent !important;
-      color: black !important;
-      filter:none !important;
-      -ms-filter: none !important;
-   }
-
-   body {
-      font-size:12pt;
-      max-width:100%;
-   }
-
-   a, a:visited {
-      text-decoration: underline;
-   }
-
-   hr {
-      visibility: hidden;
-      page-break-before: always;
-   }
-
-   pre, blockquote {
-      padding-right: 1em;
-      page-break-inside: avoid;
-   }
-
-   tr, img {
-      page-break-inside: avoid;
-   }
-
-   img {
-      max-width: 100% !important;
-   }
-
-   @page :left {
-      margin: 15mm 20mm 15mm 10mm;
-   }
-
-   @page :right {
-      margin: 15mm 10mm 15mm 20mm;
-   }
-
-   p, h2, h3 {
-      orphans: 3; widows: 3;
-   }
-
-   h2, h3 {
-      page-break-after: avoid;
-   }
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
 }
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61717; background-color: #e3d2d2; } 
 </style>
+
 
 
 
 </head>
 
 <body>
+
+
+
+
+<h1 class="title toc-ignore">orderly</h1>
+<h4 class="author">Rich FitzJohn</h4>
+<h4 class="date">2019-10-28</h4>
+
+
+
+<div id="introduction" class="section level2">
 <h2>Introduction</h2>
-
 <!-- introduction begin -->
-
-<p><code>orderly</code> is a package designed to help make analysis more <a href="https://en.wikipedia.org/wiki/Reproducibility">reproducible</a>.  Its principal aim is to automate a series of basic steps in the process of writing analyses, making it easy to:</p>
-
+<p><code>orderly</code> is a package designed to help make analysis more <a href="https://en.wikipedia.org/wiki/Reproducibility">reproducible</a>. Its principal aim is to automate a series of basic steps in the process of writing analyses, making it easy to:</p>
 <ul>
 <li>track all inputs into an analysis (packages, code, and data resources)</li>
 <li>store multiple versions of an analysis where it is repeated</li>
 <li>track outputs of an analysis</li>
 <li>create analyses that depend on the outputs of previous analyses</li>
 </ul>
-
 <p>With <code>orderly</code> we have two main hopes:</p>
-
 <ul>
-<li>analysts can write code that will straightforwardly run on someone else&#39;s machine (or a remote machine)</li>
+<li>analysts can write code that will straightforwardly run on someone else’s machine (or a remote machine)</li>
 <li>when an analysis that is run several times starts behaving differently it will be easy to see when the outputs started changing, and what inputs started changing at the same time</li>
 </ul>
-
-<p><code>orderly</code> requires a few conventions around organisation of a project, and after that tries to keep out of your way.  However, these requirements are designed to make collaborative development with git easier by minimising conflicts and making backup easier by using an append-only storage system.</p>
-
+<p><code>orderly</code> requires a few conventions around organisation of a project, and after that tries to keep out of your way. However, these requirements are designed to make collaborative development with git easier by minimising conflicts and making backup easier by using an append-only storage system.</p>
+<div id="the-problem" class="section level3">
 <h3>The problem</h3>
-
-<p>One often-touted goal of R over point-and-click analyses packages is that if an analysis is scripted it is more reproducible.  However, essentially all analyses depend on external resources - packages, data, code, and R itself; any change in these external resources might change the results.  Preventing such changes in external resources is not always possible, but <em>tracking</em> changes should be straightforward - all we need to know is what is being used.</p>
-
-<p>For example, while reproducible research <a href="https://cran.r-project.org/view=ReproducibleResearch">has become synonymous with literate programming</a> this approach often increases the number of external resources.  A typical <a href="https://cran.r-project.org/package=knitr"><code>knitr</code></a> document will depend on:</p>
-
+<p>One often-touted goal of R over point-and-click analyses packages is that if an analysis is scripted it is more reproducible. However, essentially all analyses depend on external resources - packages, data, code, and R itself; any change in these external resources might change the results. Preventing such changes in external resources is not always possible, but <em>tracking</em> changes should be straightforward - all we need to know is what is being used.</p>
+<p>For example, while reproducible research <a href="https://cran.r-project.org/view=ReproducibleResearch">has become synonymous with literate programming</a> this approach often increases the number of external resources. A typical <a href="https://cran.r-project.org/package=knitr"><code>knitr</code></a> document will depend on:</p>
 <ul>
 <li>the source file (<code>.Rmd</code> or <code>.Rnw</code>)</li>
 <li>templates used for styling</li>
 <li>data that is read in for the analysis</li>
 <li>code that is directly read in with <code>source</code></li>
 </ul>
-
 <p>The <code>orderly</code> package helps by</p>
-
 <ul>
 <li>collecting external resources before an analysis</li>
 <li>ensuring that all required external resources are identified</li>
 <li>removing any manual work in tracking information about these external resources</li>
 <li>allowing running reports multiple times and making it easy to see what changed and why</li>
 </ul>
-
-<p>The core problem is that analyses have no general <em>interface</em>.  Consider in contrast the role that functions take in programming.  All functions have a set of arguments (inputs) and a return value (outputs).  With <code>orderly</code>, we borrow this idea, and each piece of analysis will require that the user describes what is needed and what will be produced.</p>
-
+<p>The core problem is that analyses have no general <em>interface</em>. Consider in contrast the role that functions take in programming. All functions have a set of arguments (inputs) and a return value (outputs). With <code>orderly</code>, we borrow this idea, and each piece of analysis will require that the user describes what is needed and what will be produced.</p>
+</div>
+<div id="the-process" class="section level3">
 <h3>The process</h3>
-
 <p>The user describes the inputs of their analysis, including:</p>
-
 <ul>
 <li>SQL queries (if using databases)</li>
 <li>Required R sources</li>
@@ -258,12 +352,9 @@ hr {
 <li>Packages required to run the analysis</li>
 <li>Dependencies on previously run analyses</li>
 </ul>
-
-<p>The user also provides a list of &ldquo;artefacts&rdquo; (file-based results) that they will produce.</p>
-
+<p>The user also provides a list of “artefacts” (file-based results) that they will produce.</p>
 <p>Then <code>orderly</code>:</p>
-
-<ol>
+<ol style="list-style-type: decimal">
 <li>creates a new empty directory</li>
 <li>copies over <em>only</em> the declared file resources</li>
 <li>loads only the declared packages</li>
@@ -272,106 +363,63 @@ hr {
 <li>then runs the analysis</li>
 <li>verifies that the declared artefacts are produced</li>
 </ol>
-
 <p>It then stores metadata alongside the analysis including <a href="https://en.wikipedia.org/wiki/Hash_function">md5 hashes</a> of all inputs and outputs, copies of data extracted from the database, a record of all R packages loaded at the end of the session, and (if using git) information about the git state (hash, branch and status).</p>
-
 <p>Then if one of the dependencies of a report changes (the used data, code, etc), we have metadata that can be queried to identify the likely source of the change.</p>
-
 <!-- introduction end -->
-
+</div>
+</div>
+<div id="example" class="section level2">
 <h2>Example</h2>
-
-<p>To illustrate, we will start with a minimal example (you can use <code>orderly::orderly_init</code> to create a similar structure directly), and we will build it up to demonstrate <code>orderly</code> features. In the most minimal example, we want to run a script that creates a graph.  It uses no external resources.</p>
-
+<p>To illustrate, we will start with a minimal example (you can use <code>orderly::orderly_init</code> to create a similar structure directly), and we will build it up to demonstrate <code>orderly</code> features. In the most minimal example, we want to run a script that creates a graph. It uses no external resources.</p>
 <pre><code>.
 ├── orderly_config.yml
 └── src
     └── example
         ├── orderly.yml
-        └── script.R
-</code></pre>
-
-<p>In this example, the <code>orderly_config.yml</code> file is completely empty, but serves to mark the root of the <code>orderly</code> project.  We have one report, called <code>example</code>, and its configuration is within <code>orderly.yml</code>:</p>
-
-<pre><code class="yaml">script: script.R
-
-artefacts:
-  - staticgraph:
-      description: A graph of things
-      filenames: mygraph.png
-</code></pre>
-
+        └── script.R</code></pre>
+<p>In this example, the <code>orderly_config.yml</code> file is completely empty, but serves to mark the root of the <code>orderly</code> project. We have one report, called <code>example</code>, and its configuration is within <code>orderly.yml</code>:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode yaml"><code class="sourceCode yaml"><a class="sourceLine" id="cb2-1" title="1"><span class="fu">script:</span><span class="at"> script.R</span></a>
+<a class="sourceLine" id="cb2-2" title="2"></a>
+<a class="sourceLine" id="cb2-3" title="3"><span class="fu">artefacts:</span></a>
+<a class="sourceLine" id="cb2-4" title="4">  <span class="kw">-</span> <span class="fu">staticgraph:</span></a>
+<a class="sourceLine" id="cb2-5" title="5">      <span class="fu">description:</span><span class="at"> A graph of things</span></a>
+<a class="sourceLine" id="cb2-6" title="6">      <span class="fu">filenames:</span><span class="at"> mygraph.png</span></a></code></pre></div>
 <p>There are two keys here:</p>
-
 <ul>
 <li><code>script</code> the path of the script to run, <code>script.R</code></li>
-<li><code>artefacts</code> a description of the artefacts (files) that will be produced by running this script.  In this case it is a graph with the filename <code>mygraph.png</code></li>
+<li><code>artefacts</code> a description of the artefacts (files) that will be produced by running this script. In this case it is a graph with the filename <code>mygraph.png</code></li>
 </ul>
-
 <p>The script is plain R code:</p>
-
-<pre><code class="r">png(&quot;mygraph.png&quot;)
-plot(1:10)
-dev.off()
-</code></pre>
-
-<p>The R code can be as long or as short as needed and can use whatever packages it needs.  <code>orderly</code> does not do anything with the script apart from run it so
-it can be formatted freely (there are no magic comments, etc).  There are no restrictions on what can be done except that it must produce the artefacts listed in <code>orderly.yml</code>.  If not, an error will be thrown describing what was missing.</p>
-
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" title="1"><span class="kw">png</span>(<span class="st">&quot;mygraph.png&quot;</span>)</a>
+<a class="sourceLine" id="cb3-2" title="2"><span class="kw">plot</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">10</span>)</a>
+<a class="sourceLine" id="cb3-3" title="3"><span class="kw">dev.off</span>()</a></code></pre></div>
+<p>The R code can be as long or as short as needed and can use whatever packages it needs. <code>orderly</code> does not do anything with the script apart from run it so it can be formatted freely (there are no magic comments, etc). There are no restrictions on what can be done except that it must produce the artefacts listed in <code>orderly.yml</code>. If not, an error will be thrown describing what was missing.</p>
+<div id="running-the-report" class="section level3">
 <h3>Running the report</h3>
-
 <p>To run the report, use <code>orderly::orderly_run</code> (typically one would be in the <code>orderly</code> root and so the <code>root</code> directory could be omitted, but within this vignette we use a temporary directory):</p>
-
-<pre><code class="r">id &lt;- orderly::orderly_run(&quot;example&quot;, root = path)
-</code></pre>
-
-<pre><code>## [ info       ]  Writing initial orderly archive version as 0.7.15
-</code></pre>
-
-<pre><code>## [ name       ]  example
-</code></pre>
-
-<pre><code>## [ id         ]  20191014-131144-d32d370c
-</code></pre>
-
-<pre><code>## [ start      ]  2019-10-14 13:11:44
-</code></pre>
-
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" title="1">id &lt;-<span class="st"> </span>orderly<span class="op">::</span><span class="kw">orderly_run</span>(<span class="st">&quot;example&quot;</span>, <span class="dt">root =</span> path)</a></code></pre></div>
+<pre><code>## [ info       ]  Writing initial orderly archive version as 0.7.15</code></pre>
+<pre><code>## [ name       ]  example</code></pre>
+<pre><code>## Registered S3 method overwritten by &#39;openssl&#39;:
+##   method      from
+##   print.bytes Rcpp</code></pre>
+<pre><code>## [ id         ]  20191028-121940-be36d760</code></pre>
+<pre><code>## [ start      ]  2019-10-28 12:19:40</code></pre>
 <pre><code>## 
 ## &gt; png(&quot;mygraph.png&quot;)
 ## 
-## &gt; plot(1:10)
-</code></pre>
-
+## &gt; plot(1:10)</code></pre>
 <pre><code>## 
 ## &gt; dev.off()
-## png 
-##   2
-</code></pre>
-
-<pre><code>## [ end        ]  2019-10-14 13:11:44
-</code></pre>
-
-<pre><code>## [ elapsed    ]  Ran report in 0.02110505 secs
-</code></pre>
-
-<pre><code>## [ artefact   ]  mygraph.png: 7439da1b07de39a3f71b6f40bf9016ac
-</code></pre>
-
-<p>The return value is the id of the report (also printed on the
-third line of log output) and is always in the format
-<code>YYYYMMDD-HHMMSS-abcdef01</code> where the last 8 characters are hex
-digits (i.e., 4 random bytes).  This means reports will
-automatically sort nicely but we&#39;ll have some collision resistance.</p>
-
-<pre><code class="r">id
-</code></pre>
-
-<pre><code>## [1] &quot;20191014-131144-d32d370c&quot;
-</code></pre>
-
+## quartz_off_screen 
+##                 2</code></pre>
+<pre><code>## [ end        ]  2019-10-28 12:19:40</code></pre>
+<pre><code>## [ elapsed    ]  Ran report in 0.05906796 secs</code></pre>
+<pre><code>## [ artefact   ]  mygraph.png: 483e336c4c4c9205ecc45b4789a24a9c</code></pre>
+<p>The return value is the id of the report (also printed on the third line of log output) and is always in the format <code>YYYYMMDD-HHMMSS-abcdef01</code> where the last 8 characters are hex digits (i.e., 4 random bytes). This means reports will automatically sort nicely but we’ll have some collision resistance.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb15-1" title="1">id</a></code></pre></div>
+<pre><code>## [1] &quot;20191028-121940-be36d760&quot;</code></pre>
 <p>Having run the report, the directory layout now looks like:</p>
-
 <pre><code>.
 ├── archive
 ├── data
@@ -379,7 +427,7 @@ automatically sort nicely but we&#39;ll have some collision resistance.</p>
 │   └── rds
 ├── draft
 │   └── example
-│       └── 20191014-131144-d32d370c
+│       └── 20191028-121940-be36d760
 │           ├── mygraph.png
 │           ├── orderly.yml
 │           ├── orderly_run.rds
@@ -388,57 +436,32 @@ automatically sort nicely but we&#39;ll have some collision resistance.</p>
 └── src
     └── example
         ├── orderly.yml
-        └── script.R
-</code></pre>
-
-<p>Within <code>drafts</code>, the directory <code>example/20191014-131144-d32d370c</code> has been
-created which contains the result of running the report.  In here
-there are the files:</p>
-
+        └── script.R</code></pre>
+<p>Within <code>drafts</code>, the directory <code>example/20191028-121940-be36d760</code> has been created which contains the result of running the report. In here there are the files:</p>
 <ul>
 <li><code>orderly.yml</code>: this is an exact copy of the input file</li>
 <li><code>script.R</code>: this is an exact copy of the script used for the analysis</li>
 <li><code>mygraph.png</code>: the artefact created by the report</li>
-<li><code>orderly_run.rds</code>: this is metadata about the run and includes
-hashes of input files, of the data used, and of the output etc,
-along with details about the packages used and the state of git.
-It is stored in R&#39;s internal data format.</li>
+<li><code>orderly_run.rds</code>: this is metadata about the run and includes hashes of input files, of the data used, and of the output etc, along with details about the packages used and the state of git. It is stored in R’s internal data format.</li>
 </ul>
-
-<p>Every time a report is run it will create a new directory at this
-level with a new id.  Running the report again now might create the
-directory <code>example/20191014-131144-ea8b28fc</code></p>
-
-<p>We store the copies of files as run by <code>orderly</code> so that even if the
-input files change we can still easily get back to previous
-versions of the inputs, alongside the outputs, and these are safe
-from any changes to the underlying source.</p>
-
+<p>Every time a report is run it will create a new directory at this level with a new id. Running the report again now might create the directory <code>example/20191028-121941-06a08548</code></p>
+<p>We store the copies of files as run by <code>orderly</code> so that even if the input files change we can still easily get back to previous versions of the inputs, alongside the outputs, and these are safe from any changes to the underlying source.</p>
 <p>You can see the list of draft reports like so:</p>
-
-<pre><code class="r">orderly::orderly_list_drafts(root = path)
-</code></pre>
-
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb18-1" title="1">orderly<span class="op">::</span><span class="kw">orderly_list_drafts</span>(<span class="dt">root =</span> path)</a></code></pre></div>
 <pre><code>##      name                       id
-## 1 example 20191014-131144-d32d370c
-</code></pre>
-
-<p>Once you&#39;re happy with a report, then &ldquo;commit&rdquo; it with</p>
-
-<pre><code class="r">orderly::orderly_commit(id, root = path)
-## [ commit     ]  example/20191014-131144-d32d370c
-## [ copy       ]
-## [ import     ]  example:20191014-131144-d32d370c
-## [ success    ]  :)
-## [1] &quot;/tmp/RtmpqEJdBF/file1b7d6d19ece5/archive/example/20191014-131144-d32d370c&quot;
-</code></pre>
-
+## 1 example 20191028-121940-be36d760</code></pre>
+<p>Once you’re happy with a report, then “commit” it with</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb20-1" title="1">orderly<span class="op">::</span><span class="kw">orderly_commit</span>(id, <span class="dt">root =</span> path)</a>
+<a class="sourceLine" id="cb20-2" title="2"><span class="co">## [ commit     ]  example/20191028-121940-be36d760</span></a>
+<a class="sourceLine" id="cb20-3" title="3"><span class="co">## [ copy       ]</span></a>
+<a class="sourceLine" id="cb20-4" title="4"><span class="co">## [ import     ]  example:20191028-121940-be36d760</span></a>
+<a class="sourceLine" id="cb20-5" title="5"><span class="co">## [ success    ]  :)</span></a>
+<a class="sourceLine" id="cb20-6" title="6"><span class="co">## [1] &quot;/private/var/folders/z7/c2kx_kt96zn2tt_6179bkc4m0000gp/T/RtmpS0PUsv/filee70727db0347/archive/example/20191028-121940-be36d760&quot;</span></a></code></pre></div>
 <p>After this step our directory structure looks like:</p>
-
 <pre><code>.
 ├── archive
 │   └── example
-│       └── 20191014-131144-d32d370c
+│       └── 20191028-121940-be36d760
 │           ├── mygraph.png
 │           ├── orderly.yml
 │           ├── orderly_run.rds
@@ -453,30 +476,21 @@ from any changes to the underlying source.</p>
 └── src
     └── example
         ├── orderly.yml
-        └── script.R
-</code></pre>
-
-<p>This looks very like the previous, but files have been moved from being within <code>draft</code> to being within <code>archive</code>.  The other difference is that the index <code>orderly.sqlite</code> has been created.  This is a machine-readable index to all the <code>orderly</code> metadata that can be used to build applications around <code>orderly</code> (for example <a href="https://github.com/vimc/orderly-web">OrderlyWeb</a>, a web portal for <code>orderly</code> - see the &ldquo;remotes&rdquo; vignette).  The documentation for the database format is available on the <a href="https://vimc.github.io/orderly/schema"><code>orderly</code> website</a>.</p>
-
+        └── script.R</code></pre>
+<p>This looks very like the previous, but files have been moved from being within <code>draft</code> to being within <code>archive</code>. The other difference is that the index <code>orderly.sqlite</code> has been created. This is a machine-readable index to all the <code>orderly</code> metadata that can be used to build applications around <code>orderly</code> (for example <a href="https://github.com/vimc/orderly-web">OrderlyWeb</a>, a web portal for <code>orderly</code> - see the “remotes” vignette). The documentation for the database format is available on the <a href="https://vimc.github.io/orderly/schema"><code>orderly</code> website</a>.</p>
+</div>
+</div>
+<div id="creating-a-report" class="section level2">
 <h2>Creating a report</h2>
-
-<p>First, run <code>orderly::orderly_new</code> to create a directory within <code>src</code>.  The name is important and should not contain spaces (nor should it change as this will change the key report id and you&#39;ll lose a chain of history), then edit the file <code>orderly.yml</code> within that directory.</p>
-
-<pre><code class="r">orderly::orderly_new(&quot;new&quot;, root = path)
-</code></pre>
-
-<pre><code>## Created report at &#39;/tmp/RtmpqEJdBF/file1b7d6d19ece5/src/new&#39;
-</code></pre>
-
-<pre><code>## Edit the file &#39;orderly.yml&#39; within this directory
-</code></pre>
-
+<p>First, run <code>orderly::orderly_new</code> to create a directory within <code>src</code>. The name is important and should not contain spaces (nor should it change as this will change the key report id and you’ll lose a chain of history), then edit the file <code>orderly.yml</code> within that directory.</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb22-1" title="1">orderly<span class="op">::</span><span class="kw">orderly_new</span>(<span class="st">&quot;new&quot;</span>, <span class="dt">root =</span> path)</a></code></pre></div>
+<pre><code>## Created report at &#39;/private/var/folders/z7/c2kx_kt96zn2tt_6179bkc4m0000gp/T/RtmpS0PUsv/filee70727db0347/src/new&#39;</code></pre>
+<pre><code>## Edit the file &#39;orderly.yml&#39; within this directory</code></pre>
 <p>which results in a directory structure like:</p>
-
 <pre><code>.
 ├── archive
 │   └── example
-│       └── 20191014-131144-d32d370c
+│       └── 20191028-121940-be36d760
 │           ├── mygraph.png
 │           ├── orderly.yml
 │           ├── orderly_run.rds
@@ -493,359 +507,220 @@ from any changes to the underlying source.</p>
     │   ├── orderly.yml
     │   └── script.R
     └── new
-        └── orderly.yml
-</code></pre>
-
+        └── orderly.yml</code></pre>
+</div>
+<div id="resources-sources-and-artefacts" class="section level2">
 <h2>Resources, sources and artefacts</h2>
-
-<p>Resources to a report are expected to be read-only files that are used
-by the script to produce the report. Examples of the sort of files that
-should be used as resources are:</p>
-
+<p>Resources to a report are expected to be read-only files that are used by the script to produce the report. Examples of the sort of files that should be used as resources are:</p>
 <ul>
-<li>Moderately sized data files (large datasets should be accessed from
-a database),</li>
+<li>Moderately sized data files (large datasets should be accessed from a database),</li>
 <li>A markdown file used to create a report,</li>
 <li>Documentation for the report.</li>
 </ul>
-
-<p>&ldquo;Resources&rdquo; cannot be modified by the report; if <code>orderly</code> detects that a
-resource has been changed an error will be thrown.</p>
-
-<p><code>orderly</code> will automatically detect any files named <code>README.md</code> in a
-report&#39;s source directory and copy them to the new directory too.</p>
-
-<pre><code class="yaml">resources: 
-  - years.csv
-  - data_dictionary.xlsx
-  - report.Rmd
-  - code_documentation.md
-</code></pre>
-
-<p>&ldquo;Sources&rdquo; are files containing R code that will be sourced (via the R
-function <code>source()</code>) before the main script is run. Often this file
-contains functions or variables used by the main script. All of the
-copying and sourcing will be handled by <code>orderly</code> itself so there is no
-need to explicitly source the files in the main script.</p>
-
-<p>&ldquo;Artefacts&rdquo; are the output of the report. At least one artefact must be
-listed and files created during the running of the script must be
-included as artefacts (or deleted before the script finishes) or an
-error will be returned.</p>
-
+<p>“Resources” cannot be modified by the report; if <code>orderly</code> detects that a resource has been changed an error will be thrown.</p>
+<p><code>orderly</code> will automatically detect any files named <code>README.md</code> in a report’s source directory and copy them to the new directory too.</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode yaml"><code class="sourceCode yaml"><a class="sourceLine" id="cb26-1" title="1"><span class="fu">resources:</span><span class="at"> </span></a>
+<a class="sourceLine" id="cb26-2" title="2">  <span class="kw">-</span> years.csv</a>
+<a class="sourceLine" id="cb26-3" title="3">  <span class="kw">-</span> data_dictionary.xlsx</a>
+<a class="sourceLine" id="cb26-4" title="4">  <span class="kw">-</span> report.Rmd</a>
+<a class="sourceLine" id="cb26-5" title="5">  <span class="kw">-</span> code_documentation.md</a></code></pre></div>
+<p>“Sources” are files containing R code that will be sourced (via the R function <code>source()</code>) before the main script is run. Often this file contains functions or variables used by the main script. All of the copying and sourcing will be handled by <code>orderly</code> itself so there is no need to explicitly source the files in the main script.</p>
+<p>“Artefacts” are the output of the report. At least one artefact must be listed and files created during the running of the script must be included as artefacts (or deleted before the script finishes) or an error will be returned.</p>
 <p>Examples of artefacts fields in <code>orderly.yml</code>:</p>
-
-<pre><code class="yaml">artefacts:
-  - report:
-      filenames: report.html
-      description: a simple report
-</code></pre>
-
-<pre><code class="yaml">artefacts:
-  - report:
-      filenames: report.html
-      description: a simple report
-  - data:
-      description:
-        - associated data sets
-      filenames:
-        - data_one.csv
-        - data_two.csv
-        - data_three.csv
-        - data_four.csv
-</code></pre>
-
-<p>When declaring an artefact we have to specify what format the artefact
-is. Currently supported formats are :<code>data</code>, <code>report</code>, <code>staticgraph</code>,
-<code>interactivegraph</code> and <code>interactivehtml</code>. These tags reflect the
-intent of use of the file, they have no special meaning within <code>orderly</code> itself.</p>
-
+<div class="sourceCode" id="cb27"><pre class="sourceCode yaml"><code class="sourceCode yaml"><a class="sourceLine" id="cb27-1" title="1"><span class="fu">artefacts:</span></a>
+<a class="sourceLine" id="cb27-2" title="2">  <span class="kw">-</span> <span class="fu">report:</span></a>
+<a class="sourceLine" id="cb27-3" title="3">      <span class="fu">filenames:</span><span class="at"> report.html</span></a>
+<a class="sourceLine" id="cb27-4" title="4">      <span class="fu">description:</span><span class="at"> a simple report</span></a></code></pre></div>
+<div class="sourceCode" id="cb28"><pre class="sourceCode yaml"><code class="sourceCode yaml"><a class="sourceLine" id="cb28-1" title="1"><span class="fu">artefacts:</span></a>
+<a class="sourceLine" id="cb28-2" title="2">  <span class="kw">-</span> <span class="fu">report:</span></a>
+<a class="sourceLine" id="cb28-3" title="3">      <span class="fu">filenames:</span><span class="at"> report.html</span></a>
+<a class="sourceLine" id="cb28-4" title="4">      <span class="fu">description:</span><span class="at"> a simple report</span></a>
+<a class="sourceLine" id="cb28-5" title="5">  <span class="kw">-</span> <span class="fu">data:</span></a>
+<a class="sourceLine" id="cb28-6" title="6">      <span class="fu">description:</span></a>
+<a class="sourceLine" id="cb28-7" title="7">        <span class="kw">-</span> associated data sets</a>
+<a class="sourceLine" id="cb28-8" title="8">      <span class="fu">filenames:</span></a>
+<a class="sourceLine" id="cb28-9" title="9">        <span class="kw">-</span> data_one.csv</a>
+<a class="sourceLine" id="cb28-10" title="10">        <span class="kw">-</span> data_two.csv</a>
+<a class="sourceLine" id="cb28-11" title="11">        <span class="kw">-</span> data_three.csv</a>
+<a class="sourceLine" id="cb28-12" title="12">        <span class="kw">-</span> data_four.csv</a></code></pre></div>
+<p>When declaring an artefact we have to specify what format the artefact is. Currently supported formats are :<code>data</code>, <code>report</code>, <code>staticgraph</code>, <code>interactivegraph</code> and <code>interactivehtml</code>. These tags reflect the intent of use of the file, they have no special meaning within <code>orderly</code> itself.</p>
+</div>
+<div id="using-artefacts-from-other-reports" class="section level2">
 <h2>Using artefacts from other reports</h2>
-
-<p>It is often the case that we would like to write a report that depends
-on an earlier report, <em>e.g.</em> one report produces a large dataset and a
-later report produces a high level summary. <code>orderly</code> allows a report to
-directly copy an artefact file from an existing report without having
-to manually copy it into the report source directory. This is handled
-in the <code>depends</code> block of the report&#39;s <code>orderly.yml</code>.</p>
-
-<p><em>To use a file as a dependency it must be explicitly listed as an
-artefact.</em></p>
-
+<p>It is often the case that we would like to write a report that depends on an earlier report, <em>e.g.</em> one report produces a large dataset and a later report produces a high level summary. <code>orderly</code> allows a report to directly copy an artefact file from an existing report without having to manually copy it into the report source directory. This is handled in the <code>depends</code> block of the report’s <code>orderly.yml</code>.</p>
+<p><em>To use a file as a dependency it must be explicitly listed as an artefact.</em></p>
 <p>An simple example might look like:</p>
-
-<pre><code class="yaml">depends:
-  - big-data-report:
-      id: 20190425-163691-b8451bbf
-      use:
-        data.rds: huge-data-set.rds
-      draft: false
-</code></pre>
-
-<p>This will copy the file the <code>huge-data-set.rds</code> from the report
-<code>big-data-report</code> with <code>id</code> <code>20190425-163691-b8451bbf</code> and rename it
-<code>data.rds</code>. This file can then be used by the report as if it were in
-the source directory. The field <code>draft</code> tells <code>orderly</code> to only use
-completed reports in the archive as opposed to drafts. Setting this to
-true allows uncommitted reports in <code>draft</code> to be used. This can be
-useful when developing a chain of related reports.</p>
-
+<div class="sourceCode" id="cb29"><pre class="sourceCode yaml"><code class="sourceCode yaml"><a class="sourceLine" id="cb29-1" title="1"><span class="fu">depends:</span></a>
+<a class="sourceLine" id="cb29-2" title="2">  <span class="kw">-</span> <span class="fu">big-data-report:</span></a>
+<a class="sourceLine" id="cb29-3" title="3">      <span class="fu">id:</span><span class="at"> 20190425-163691-b8451bbf</span></a>
+<a class="sourceLine" id="cb29-4" title="4">      <span class="fu">use:</span></a>
+<a class="sourceLine" id="cb29-5" title="5">        <span class="fu">data.rds:</span><span class="at"> huge-data-set.rds</span></a>
+<a class="sourceLine" id="cb29-6" title="6">      <span class="fu">draft:</span><span class="at"> </span><span class="ch">false</span></a></code></pre></div>
+<p>This will copy the file the <code>huge-data-set.rds</code> from the report <code>big-data-report</code> with <code>id</code> <code>20190425-163691-b8451bbf</code> and rename it <code>data.rds</code>. This file can then be used by the report as if it were in the source directory. The field <code>draft</code> tells <code>orderly</code> to only use completed reports in the archive as opposed to drafts. Setting this to true allows uncommitted reports in <code>draft</code> to be used. This can be useful when developing a chain of related reports.</p>
 <p>If we want a report to always use the latest version of a report <code>big-data-report</code> we can set the <code>id</code> field to <code>latest</code>, <em>e.g.</em>:</p>
-
-<pre><code class="yaml">depends:
-  - big-data-report:
-      id: latest
-      use:
-        data.rds: huge-data-set.rds
-      draft: false
-</code></pre>
-
-<p>This will find the most recent version of the report <code>big-data-report</code>
-and copy files from that directory.</p>
-
-<p>To use multiple artefacts from a single report add the files into the
-<code>use</code> block <em>e.g.</em>:</p>
-
-<pre><code class="yaml">depends:
-  - big-data-report:
-      id: latest
-      use:
-        data.rds: huge-data-set.rds
-        pop.csv: population_data.csv
-      draft: false
-</code></pre>
-
-<p>To use artefacts from multiple reports we add multiple entries to the
-<code>depends</code> field <em>e.g.</em>:</p>
-
-<pre><code class="yaml">depends:
-  - big-data-report:
-      id: latest
-      use:
-        data.rds: huge-data-set.rds
-        pop.csv: population_data.csv
-      draft: false
-  - report_two:
-      id: latest
-      use:
-        data_b.rds: filename.rds
-      draft: false
-</code></pre>
-
-<p>We can also use the same artefact from <em>different versions</em> of the same
-report. This might come up if we want to write a report that compares
-the output from different versions of another report. The yaml pattern for this
-is:</p>
-
-<pre><code class="yaml">depends:
-  - big-data-report:
-      id: 20190425-163691-b8451bbf
-      draft: false
-      use:
-        data_latest.rds: huge-data-set.rds
-  - big-data-report:
-      id: 20181225-172991-34c91ef1
-      draft: false
-      use:
-        data_old: huge-data-set.rds
-</code></pre>
-
-<p>The important feature in this example is the dashes before the report
-name. When all the report names are different these dashes can be
-omitted, but they are necessary when the report depends on different
-versions of the same report. Since including the dashes will never
-cause a problem but omitting them might, we advise that they should
-always be included.</p>
-
+<div class="sourceCode" id="cb30"><pre class="sourceCode yaml"><code class="sourceCode yaml"><a class="sourceLine" id="cb30-1" title="1"><span class="fu">depends:</span></a>
+<a class="sourceLine" id="cb30-2" title="2">  <span class="kw">-</span> <span class="fu">big-data-report:</span></a>
+<a class="sourceLine" id="cb30-3" title="3">      <span class="fu">id:</span><span class="at"> latest</span></a>
+<a class="sourceLine" id="cb30-4" title="4">      <span class="fu">use:</span></a>
+<a class="sourceLine" id="cb30-5" title="5">        <span class="fu">data.rds:</span><span class="at"> huge-data-set.rds</span></a>
+<a class="sourceLine" id="cb30-6" title="6">      <span class="fu">draft:</span><span class="at"> </span><span class="ch">false</span></a></code></pre></div>
+<p>This will find the most recent version of the report <code>big-data-report</code> and copy files from that directory.</p>
+<p>To use multiple artefacts from a single report add the files into the <code>use</code> block <em>e.g.</em>:</p>
+<div class="sourceCode" id="cb31"><pre class="sourceCode yaml"><code class="sourceCode yaml"><a class="sourceLine" id="cb31-1" title="1"><span class="fu">depends:</span></a>
+<a class="sourceLine" id="cb31-2" title="2">  <span class="kw">-</span> <span class="fu">big-data-report:</span></a>
+<a class="sourceLine" id="cb31-3" title="3">      <span class="fu">id:</span><span class="at"> latest</span></a>
+<a class="sourceLine" id="cb31-4" title="4">      <span class="fu">use:</span></a>
+<a class="sourceLine" id="cb31-5" title="5">        <span class="fu">data.rds:</span><span class="at"> huge-data-set.rds</span></a>
+<a class="sourceLine" id="cb31-6" title="6">        <span class="fu">pop.csv:</span><span class="at"> population_data.csv</span></a>
+<a class="sourceLine" id="cb31-7" title="7">      <span class="fu">draft:</span><span class="at"> </span><span class="ch">false</span></a></code></pre></div>
+<p>To use artefacts from multiple reports we add multiple entries to the <code>depends</code> field <em>e.g.</em>:</p>
+<div class="sourceCode" id="cb32"><pre class="sourceCode yaml"><code class="sourceCode yaml"><a class="sourceLine" id="cb32-1" title="1"><span class="fu">depends:</span></a>
+<a class="sourceLine" id="cb32-2" title="2">  <span class="kw">-</span> <span class="fu">big-data-report:</span></a>
+<a class="sourceLine" id="cb32-3" title="3">      <span class="fu">id:</span><span class="at"> latest</span></a>
+<a class="sourceLine" id="cb32-4" title="4">      <span class="fu">use:</span></a>
+<a class="sourceLine" id="cb32-5" title="5">        <span class="fu">data.rds:</span><span class="at"> huge-data-set.rds</span></a>
+<a class="sourceLine" id="cb32-6" title="6">        <span class="fu">pop.csv:</span><span class="at"> population_data.csv</span></a>
+<a class="sourceLine" id="cb32-7" title="7">      <span class="fu">draft:</span><span class="at"> </span><span class="ch">false</span></a>
+<a class="sourceLine" id="cb32-8" title="8">  <span class="kw">-</span> <span class="fu">report_two:</span></a>
+<a class="sourceLine" id="cb32-9" title="9">      <span class="fu">id:</span><span class="at"> latest</span></a>
+<a class="sourceLine" id="cb32-10" title="10">      <span class="fu">use:</span></a>
+<a class="sourceLine" id="cb32-11" title="11">        <span class="fu">data_b.rds:</span><span class="at"> filename.rds</span></a>
+<a class="sourceLine" id="cb32-12" title="12">      <span class="fu">draft:</span><span class="at"> </span><span class="ch">false</span></a></code></pre></div>
+<p>We can also use the same artefact from <em>different versions</em> of the same report. This might come up if we want to write a report that compares the output from different versions of another report. The yaml pattern for this is:</p>
+<div class="sourceCode" id="cb33"><pre class="sourceCode yaml"><code class="sourceCode yaml"><a class="sourceLine" id="cb33-1" title="1"><span class="fu">depends:</span></a>
+<a class="sourceLine" id="cb33-2" title="2">  <span class="kw">-</span> <span class="fu">big-data-report:</span></a>
+<a class="sourceLine" id="cb33-3" title="3">      <span class="fu">id:</span><span class="at"> 20190425-163691-b8451bbf</span></a>
+<a class="sourceLine" id="cb33-4" title="4">      <span class="fu">draft:</span><span class="at"> </span><span class="ch">false</span></a>
+<a class="sourceLine" id="cb33-5" title="5">      <span class="fu">use:</span></a>
+<a class="sourceLine" id="cb33-6" title="6">        <span class="fu">data_latest.rds:</span><span class="at"> huge-data-set.rds</span></a>
+<a class="sourceLine" id="cb33-7" title="7">  <span class="kw">-</span> <span class="fu">big-data-report:</span></a>
+<a class="sourceLine" id="cb33-8" title="8">      <span class="fu">id:</span><span class="at"> 20181225-172991-34c91ef1</span></a>
+<a class="sourceLine" id="cb33-9" title="9">      <span class="fu">draft:</span><span class="at"> </span><span class="ch">false</span></a>
+<a class="sourceLine" id="cb33-10" title="10">      <span class="fu">use:</span></a>
+<a class="sourceLine" id="cb33-11" title="11">        <span class="fu">data_old:</span><span class="at"> huge-data-set.rds</span></a></code></pre></div>
+<p>The important feature in this example is the dashes before the report name. When all the report names are different these dashes can be omitted, but they are necessary when the report depends on different versions of the same report. Since including the dashes will never cause a problem but omitting them might, we advise that they should always be included.</p>
+</div>
+<div id="parameterised-reports" class="section level2">
 <h2>Parameterised reports</h2>
-
-<p>Sometimes it can be useful to control how a report runs by a parameter.  This could be the name of a country that an analysis applies to (though we hope to develop a better interface for this soon) through to controlling the number of iterations that an analysis runs for.  Parameters are declared in the <code>orderly.yml</code> like:</p>
-
-<pre><code class="yaml">parameters:
-  a:
-    default: 1
-  b: ~
-</code></pre>
-
-<p>This would declare that a report takes two parameters <code>a</code> (with a default of 1), and <code>b</code> (with no default).  Running the report would then look like:</p>
-
-<pre><code class="r">orderly::orderly_run(&quot;reportname&quot;, list(a = 10, b = 100))
-</code></pre>
-
+<p>Sometimes it can be useful to control how a report runs by a parameter. This could be the name of a country that an analysis applies to (though we hope to develop a better interface for this soon) through to controlling the number of iterations that an analysis runs for. Parameters are declared in the <code>orderly.yml</code> like:</p>
+<div class="sourceCode" id="cb34"><pre class="sourceCode yaml"><code class="sourceCode yaml"><a class="sourceLine" id="cb34-1" title="1"><span class="fu">parameters:</span></a>
+<a class="sourceLine" id="cb34-2" title="2">  <span class="fu">a:</span></a>
+<a class="sourceLine" id="cb34-3" title="3">    <span class="fu">default:</span><span class="at"> </span><span class="dv">1</span></a>
+<a class="sourceLine" id="cb34-4" title="4">  <span class="fu">b:</span><span class="at"> </span><span class="ch">~</span></a></code></pre></div>
+<p>This would declare that a report takes two parameters <code>a</code> (with a default of 1), and <code>b</code> (with no default). Running the report would then look like:</p>
+<div class="sourceCode" id="cb35"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb35-1" title="1">orderly<span class="op">::</span><span class="kw">orderly_run</span>(<span class="st">&quot;reportname&quot;</span>, <span class="kw">list</span>(<span class="dt">a =</span> <span class="dv">10</span>, <span class="dt">b =</span> <span class="dv">100</span>))</a></code></pre></div>
 <p>These parameters are then present in the environment of the report, so the code can use values <code>a</code> and <code>b</code>.</p>
-
 <p>The parameters will also be interpolated into any SQL queries before they are run, so if the <code>orderly.yml</code> contains:</p>
-
-<pre><code class="yaml">data:
-  cars:
-    query: SELECT * FROM mtcars WHERE cyl &gt; ?a
-</code></pre>
-
+<div class="sourceCode" id="cb36"><pre class="sourceCode yaml"><code class="sourceCode yaml"><a class="sourceLine" id="cb36-1" title="1"><span class="fu">data:</span></a>
+<a class="sourceLine" id="cb36-2" title="2">  <span class="fu">cars:</span></a>
+<a class="sourceLine" id="cb36-3" title="3">    <span class="fu">query:</span><span class="at"> SELECT * FROM mtcars WHERE cyl &gt; ?a</span></a></code></pre></div>
 <p>then this will be evaluated on the SQL server with <code>a</code> substituted in where the query says <code>?a</code> (this is done with <code>DBI::sqlInterpolate</code>).</p>
-
+</div>
+<div id="using-global-resources" class="section level2">
 <h2>Using global resources</h2>
-
-<p>There might be files that are used in (almost) every report.  Examples
-of these sorts of files might be document templates or organisation
-logos. To set up a global resource create a directory
-<code>your_global_dir</code> in <code>&lt;root&gt;</code> and the following to the
-<code>orderly_config.yml</code>:</p>
-
-<pre><code class="yaml">global_resources:
-  your_global_dir
-</code></pre>
-
-<p>Then to use any file in <code>your_global_dir</code> in your report add a
-<code>global_resources</code> field to that report&#39;s <code>orderly.yml</code>:</p>
-
-<pre><code class="yaml">global_resources:
-  logo.jpg: org_logo.jpg
-  latex_class.cls: org_latex_class.cls
-  styles.css: org_styles.css
-</code></pre>
-
-<p>Currently code <em>i.e.</em> R source code cannot be sourced from the global
-resources directory. So for example utility functions common across
-multiple reports must be included in each report directory separately.
-The functionality to include global source code may be added in future
-versions.</p>
-
+<p>There might be files that are used in (almost) every report. Examples of these sorts of files might be document templates or organisation logos. To set up a global resource create a directory <code>your_global_dir</code> in <code>&lt;root&gt;</code> and the following to the <code>orderly_config.yml</code>:</p>
+<div class="sourceCode" id="cb37"><pre class="sourceCode yaml"><code class="sourceCode yaml"><a class="sourceLine" id="cb37-1" title="1"><span class="fu">global_resources:</span></a>
+<a class="sourceLine" id="cb37-2" title="2">  your_global_dir</a></code></pre></div>
+<p>Then to use any file in <code>your_global_dir</code> in your report add a <code>global_resources</code> field to that report’s <code>orderly.yml</code>:</p>
+<div class="sourceCode" id="cb38"><pre class="sourceCode yaml"><code class="sourceCode yaml"><a class="sourceLine" id="cb38-1" title="1"><span class="fu">global_resources:</span></a>
+<a class="sourceLine" id="cb38-2" title="2">  <span class="fu">logo.jpg:</span><span class="at"> org_logo.jpg</span></a>
+<a class="sourceLine" id="cb38-3" title="3">  <span class="fu">latex_class.cls:</span><span class="at"> org_latex_class.cls</span></a>
+<a class="sourceLine" id="cb38-4" title="4">  <span class="fu">styles.css:</span><span class="at"> org_styles.css</span></a></code></pre></div>
+<p>Currently code <em>i.e.</em> R source code cannot be sourced from the global resources directory. So for example utility functions common across multiple reports must be included in each report directory separately. The functionality to include global source code may be added in future versions.</p>
+</div>
+<div id="using-sql-databases" class="section level2">
 <h2>Using SQL databases</h2>
-
-<p>One of the original aims of <code>orderly</code> was to provide a set of tools for use of SQL databases within reproducible reporting.  Because the SQL database is an external global resource it is difficult to work with any concept of &ldquo;versioning&rdquo; from R (there is no git history, no way of easily rolling back to previous versions etc).  If using a central SQL server, there is configuration that should be kept <em>out</em> of any analysis, particularly things like passwords.  Configuration problems multiply when using both &ldquo;production&rdquo; and &ldquo;staging&rdquo; systems as we would like to be able to switch between different configurations.</p>
-
+<p>One of the original aims of <code>orderly</code> was to provide a set of tools for use of SQL databases within reproducible reporting. Because the SQL database is an external global resource it is difficult to work with any concept of “versioning” from R (there is no git history, no way of easily rolling back to previous versions etc). If using a central SQL server, there is configuration that should be kept <em>out</em> of any analysis, particularly things like passwords. Configuration problems multiply when using both “production” and “staging” systems as we would like to be able to switch between different configurations.</p>
+<div id="configuration" class="section level3">
 <h3>Configuration</h3>
-
 <p>The root <code>orderly_config.yml</code> configuration specifies the locations of databases (there can be any number), for example:</p>
-
-<pre><code class="yaml">database:
-  source:
-    driver: RPostgres::Postgres
-    args:
-      host: dbhost.example.org
-      port: 5432
-      user: myusername
-      password: s3cret
-      dbname: mydb
-</code></pre>
-
-<p>This database will be referred to elsewhere as <code>source</code> and it will be connected with the <code>RPostgres::Postgres</code> driver (from the <a href="https://cran.r-project.org/package=RPostgres">RPostgres</a> package).  Arguments within the <code>args</code> block will be passed to the driver, in this case being the equivalent of:</p>
-
-<pre><code class="r">DBI::dbConnect(RPostgres::Postgres, host = &quot;dbhost.example.org&quot;, port = 5432,
-               user = &quot;myusername&quot;, password = &quot;s3cret&quot;, dbname = &quot;mydb&quot;)
-</code></pre>
-
-<p>The values used in the <code>args</code> blocks can be environment values (e.g., <code>password: $DB_PASSWORD</code>) in which case they will be resolved from the environment before connecting.  This will be useful for keeping secrets out of source control.</p>
-
+<div class="sourceCode" id="cb39"><pre class="sourceCode yaml"><code class="sourceCode yaml"><a class="sourceLine" id="cb39-1" title="1"><span class="fu">database:</span></a>
+<a class="sourceLine" id="cb39-2" title="2">  <span class="fu">source:</span></a>
+<a class="sourceLine" id="cb39-3" title="3">    <span class="fu">driver:</span><span class="at"> RPostgres::Postgres</span></a>
+<a class="sourceLine" id="cb39-4" title="4">    <span class="fu">args:</span></a>
+<a class="sourceLine" id="cb39-5" title="5">      <span class="fu">host:</span><span class="at"> dbhost.example.org</span></a>
+<a class="sourceLine" id="cb39-6" title="6">      <span class="fu">port:</span><span class="at"> </span><span class="dv">5432</span></a>
+<a class="sourceLine" id="cb39-7" title="7">      <span class="fu">user:</span><span class="at"> myusername</span></a>
+<a class="sourceLine" id="cb39-8" title="8">      <span class="fu">password:</span><span class="at"> s3cret</span></a>
+<a class="sourceLine" id="cb39-9" title="9">      <span class="fu">dbname:</span><span class="at"> mydb</span></a></code></pre></div>
+<p>This database will be referred to elsewhere as <code>source</code> and it will be connected with the <code>RPostgres::Postgres</code> driver (from the <a href="https://cran.r-project.org/package=RPostgres">RPostgres</a> package). Arguments within the <code>args</code> block will be passed to the driver, in this case being the equivalent of:</p>
+<div class="sourceCode" id="cb40"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb40-1" title="1">DBI<span class="op">::</span><span class="kw">dbConnect</span>(RPostgres<span class="op">::</span>Postgres, <span class="dt">host =</span> <span class="st">&quot;dbhost.example.org&quot;</span>, <span class="dt">port =</span> <span class="dv">5432</span>,</a>
+<a class="sourceLine" id="cb40-2" title="2">               <span class="dt">user =</span> <span class="st">&quot;myusername&quot;</span>, <span class="dt">password =</span> <span class="st">&quot;s3cret&quot;</span>, <span class="dt">dbname =</span> <span class="st">&quot;mydb&quot;</span>)</a></code></pre></div>
+<p>The values used in the <code>args</code> blocks can be environment values (e.g., <code>password: $DB_PASSWORD</code>) in which case they will be resolved from the environment before connecting. This will be useful for keeping secrets out of source control.</p>
 <p>For <a href="https://cran.r-project.org/package=RSQLite">SQLite</a> databases, the <code>args</code> block will typically contain only <code>dbname</code> which is the path to the database file.</p>
-
+</div>
+<div id="use-within-a-report" class="section level3">
 <h3>Use within a report</h3>
-
 <p>A report configuration (<code>orderly.yml</code>) can contain a <code>data</code> block, which contains sql queries, such as:</p>
-
-<pre><code class="yaml">data:
-  cars:
-    query: SELECT * FROM mtcars WHERE cyl = 4
-    database: source
-</code></pre>
-
-<p>In this case, the query <code>SELECT * FROM mtcars WHERE cyl = 4</code> will be run against the <code>source</code> database to create an object <code>cars</code> in the report environment.  The actual report code can use that object without having ever created the database connection or evaluating the query.</p>
-
-<p>Further, the data used in the query will be captured in <code>orderly</code>&#39;s <code>data</code> directory, and hashes of the data will be stored alongside the results.  This means that even if the data in the database is a constantly moving target we can still detect if changes to the data are responsible for changes in the result of a report.</p>
-
+<div class="sourceCode" id="cb41"><pre class="sourceCode yaml"><code class="sourceCode yaml"><a class="sourceLine" id="cb41-1" title="1"><span class="fu">data:</span></a>
+<a class="sourceLine" id="cb41-2" title="2">  <span class="fu">cars:</span></a>
+<a class="sourceLine" id="cb41-3" title="3">    <span class="fu">query:</span><span class="at"> SELECT * FROM mtcars WHERE cyl = 4</span></a>
+<a class="sourceLine" id="cb41-4" title="4">    <span class="fu">database:</span><span class="at"> source</span></a></code></pre></div>
+<p>In this case, the query <code>SELECT * FROM mtcars WHERE cyl = 4</code> will be run against the <code>source</code> database to create an object <code>cars</code> in the report environment. The actual report code can use that object without having ever created the database connection or evaluating the query.</p>
+<p>Further, the data used in the query will be captured in <code>orderly</code>’s <code>data</code> directory, and hashes of the data will be stored alongside the results. This means that even if the data in the database is a constantly moving target we can still detect if changes to the data are responsible for changes in the result of a report.</p>
+</div>
+<div id="advanced-use" class="section level3">
 <h3>Advanced use</h3>
-
 <p>If you need to perform complicated SQL queries, then you can export the database connection directly by adding a block:</p>
-
-<pre><code class="yaml">connection:
-  con: source
-</code></pre>
-
-<p>which will save the connection to the <code>source</code> database as the R object <code>con</code>.  We have used this where a report requires running queries in a loop that depend on the results of a previous query or additional data loaded into a report, or where the result of the query will be very large and we do not want to save it to disk.</p>
-
+<div class="sourceCode" id="cb42"><pre class="sourceCode yaml"><code class="sourceCode yaml"><a class="sourceLine" id="cb42-1" title="1"><span class="fu">connection:</span></a>
+<a class="sourceLine" id="cb42-2" title="2">  <span class="fu">con:</span><span class="at"> source</span></a></code></pre></div>
+<p>which will save the connection to the <code>source</code> database as the R object <code>con</code>. We have used this where a report requires running queries in a loop that depend on the results of a previous query or additional data loaded into a report, or where the result of the query will be very large and we do not want to save it to disk.</p>
 <p>Note that this reduces the amount of tracking that <code>orderly</code> can do, as we have no way of knowing what is done with the connection once passed to the script.</p>
-
+</div>
+<div id="customising-the-database-configuration" class="section level3">
 <h3>Customising the database configuration</h3>
-
-<p>The contents of <code>orderly_config.yml</code> may contain things like secrets
-(passwords) or hostnames that vary depending on deployment (e.g.,
-testing locally vs running on a remote system).  To customise this,
-you can use environment variables within the configuration.  So
-rather than writing</p>
-
-<pre><code class="yaml">database:
-  source:
-    driver: RPostgres::Postgres
-    args:
-      host: localhost
-      port: 5432
-      user: myuser
-      dbname: databasename
-      password: p4ssw0rd
-</code></pre>
-
+<p>The contents of <code>orderly_config.yml</code> may contain things like secrets (passwords) or hostnames that vary depending on deployment (e.g., testing locally vs running on a remote system). To customise this, you can use environment variables within the configuration. So rather than writing</p>
+<div class="sourceCode" id="cb43"><pre class="sourceCode yaml"><code class="sourceCode yaml"><a class="sourceLine" id="cb43-1" title="1"><span class="fu">database:</span></a>
+<a class="sourceLine" id="cb43-2" title="2">  <span class="fu">source:</span></a>
+<a class="sourceLine" id="cb43-3" title="3">    <span class="fu">driver:</span><span class="at"> RPostgres::Postgres</span></a>
+<a class="sourceLine" id="cb43-4" title="4">    <span class="fu">args:</span></a>
+<a class="sourceLine" id="cb43-5" title="5">      <span class="fu">host:</span><span class="at"> localhost</span></a>
+<a class="sourceLine" id="cb43-6" title="6">      <span class="fu">port:</span><span class="at"> </span><span class="dv">5432</span></a>
+<a class="sourceLine" id="cb43-7" title="7">      <span class="fu">user:</span><span class="at"> myuser</span></a>
+<a class="sourceLine" id="cb43-8" title="8">      <span class="fu">dbname:</span><span class="at"> databasename</span></a>
+<a class="sourceLine" id="cb43-9" title="9">      <span class="fu">password:</span><span class="at"> p4ssw0rd</span></a></code></pre></div>
 <p>you might write</p>
-
-<pre><code class="yaml">database:
-  source:
-    driver: RPostgres::Postgres
-    args:
-      host: $MY_DBHOST
-      port: $MY_DBPORT
-      user: $MY_DBUSER
-      dbname: $MY_DBNAME
-      password: $MY_PASSWORD
-</code></pre>
-
-<p>environment variables, as used this way <strong>must</strong> begin with a
-dollar sign and consist only of uppercase letters, numbers and the
-underscore character.  You can then set the environment variables
-in an <code>.Renviron</code> (either within the project or in your home
-directory) file or your <code>.profile</code> file.  Alternatively, you can
-create a file <code>orderly_envir.yml</code> in the same directory as
-<code>orderly_config.yml</code> with key-value pairs, such as</p>
-
-<pre><code class="yaml">MY_DBHOST: localhost
-MY_DBPORT: 5432
-MY_DBUSER: myuser
-MY_DBNAME: databasename
-MY_PASSWORD: p4ssw0rd
-</code></pre>
-
-<p>This will be read every time that <code>orderly_config.yml</code> is read (in
-contrast with <code>.Renviron</code> which is read-only at the start of a
-session).  This will likely be more pleasant to work with.</p>
-
-<p>The advantage of using environment variables is that you can add
-the <code>orderly_envir.yml</code> file to your <code>.gitignore</code> and avoid
-committing system-dependent data to the central repository.</p>
-
-<p>To avoid leaving passwords in plain text, you can use <a href="https://www.vaultproject.io"><code>vault</code></a> (along with the R client <a href="https://cran.r-project.org/package=vaultr"><code>vaultr</code></a>) to
-retrieve them.</p>
-
+<div class="sourceCode" id="cb44"><pre class="sourceCode yaml"><code class="sourceCode yaml"><a class="sourceLine" id="cb44-1" title="1"><span class="fu">database:</span></a>
+<a class="sourceLine" id="cb44-2" title="2">  <span class="fu">source:</span></a>
+<a class="sourceLine" id="cb44-3" title="3">    <span class="fu">driver:</span><span class="at"> RPostgres::Postgres</span></a>
+<a class="sourceLine" id="cb44-4" title="4">    <span class="fu">args:</span></a>
+<a class="sourceLine" id="cb44-5" title="5">      <span class="fu">host:</span><span class="at"> $MY_DBHOST</span></a>
+<a class="sourceLine" id="cb44-6" title="6">      <span class="fu">port:</span><span class="at"> $MY_DBPORT</span></a>
+<a class="sourceLine" id="cb44-7" title="7">      <span class="fu">user:</span><span class="at"> $MY_DBUSER</span></a>
+<a class="sourceLine" id="cb44-8" title="8">      <span class="fu">dbname:</span><span class="at"> $MY_DBNAME</span></a>
+<a class="sourceLine" id="cb44-9" title="9">      <span class="fu">password:</span><span class="at"> $MY_PASSWORD</span></a></code></pre></div>
+<p>environment variables, as used this way <strong>must</strong> begin with a dollar sign and consist only of uppercase letters, numbers and the underscore character. You can then set the environment variables in an <code>.Renviron</code> (either within the project or in your home directory) file or your <code>.profile</code> file. Alternatively, you can create a file <code>orderly_envir.yml</code> in the same directory as <code>orderly_config.yml</code> with key-value pairs, such as</p>
+<div class="sourceCode" id="cb45"><pre class="sourceCode yaml"><code class="sourceCode yaml"><a class="sourceLine" id="cb45-1" title="1"><span class="fu">MY_DBHOST:</span><span class="at"> localhost</span></a>
+<a class="sourceLine" id="cb45-2" title="2"><span class="fu">MY_DBPORT:</span><span class="at"> </span><span class="dv">5432</span></a>
+<a class="sourceLine" id="cb45-3" title="3"><span class="fu">MY_DBUSER:</span><span class="at"> myuser</span></a>
+<a class="sourceLine" id="cb45-4" title="4"><span class="fu">MY_DBNAME:</span><span class="at"> databasename</span></a>
+<a class="sourceLine" id="cb45-5" title="5"><span class="fu">MY_PASSWORD:</span><span class="at"> p4ssw0rd</span></a></code></pre></div>
+<p>This will be read every time that <code>orderly_config.yml</code> is read (in contrast with <code>.Renviron</code> which is read-only at the start of a session). This will likely be more pleasant to work with.</p>
+<p>The advantage of using environment variables is that you can add the <code>orderly_envir.yml</code> file to your <code>.gitignore</code> and avoid committing system-dependent data to the central repository.</p>
+<p>To avoid leaving passwords in plain text, you can use <a href="https://www.vaultproject.io"><code>vault</code></a> (along with the R client <a href="https://cran.r-project.org/package=vaultr"><code>vaultr</code></a>) to retrieve them.</p>
 <p>To do this, you should include the address of your vault server in the <code>orderly_config.yml</code> as</p>
-
-<pre><code class="yaml">vault_server: https://example.com:8200
-</code></pre>
-
-<p>Then, for values that you want to retrieve from the vault, set the value of the field to <code>VAULT:&lt;path&gt;:&lt;field&gt;</code>, where <code>&lt;path&gt;</code> is the name of a vault
-secret path (probably beginning with <code>/secret/</code> and <code>field</code> is the name of the field at that path.  So, for example:</p>
-
-<pre><code class="yaml">      password: VAULT:/secret/users/database_user:password
-</code></pre>
-
-<p>would look up the field <code>password</code> at the path
-<code>/secret/users/database_user</code>.  This can be stored in
-<code>orderly_config.yml</code>, in the contents of an environment variable or
-in <code>orderly_envir.yml</code> (currently this only uses the vault <a href="https://www.vaultproject.io/docs/secrets/kv/kv-v1.html">version 1 key-value storage</a>)</p>
-
+<div class="sourceCode" id="cb46"><pre class="sourceCode yaml"><code class="sourceCode yaml"><a class="sourceLine" id="cb46-1" title="1"><span class="fu">vault_server:</span><span class="at"> https://example.com:8200</span></a></code></pre></div>
+<p>Then, for values that you want to retrieve from the vault, set the value of the field to <code>VAULT:&lt;path&gt;:&lt;field&gt;</code>, where <code>&lt;path&gt;</code> is the name of a vault secret path (probably beginning with <code>/secret/</code> and <code>field</code> is the name of the field at that path. So, for example:</p>
+<div class="sourceCode" id="cb47"><pre class="sourceCode yaml"><code class="sourceCode yaml"><a class="sourceLine" id="cb47-1" title="1">      <span class="fu">password:</span><span class="at"> VAULT:/secret/users/database_user:password</span></a></code></pre></div>
+<p>would look up the field <code>password</code> at the path <code>/secret/users/database_user</code>. This can be stored in <code>orderly_config.yml</code>, in the contents of an environment variable or in <code>orderly_envir.yml</code> (currently this only uses the vault <a href="https://www.vaultproject.io/docs/secrets/kv/kv-v1.html">version 1 key-value storage</a>)</p>
+</div>
+</div>
+<div id="debugging-a-report" class="section level2">
 <h2>Debugging a report</h2>
+<p>As a report becomes more complex, the function <code>orderly::orderly_test_start</code> will become useful; this function creates the isolated environment that <code>orderly</code> uses to run a report, but then leaves you to interactively work with your report.</p>
+</div>
 
-<p>As a report becomes more complex, the function
-<code>orderly::orderly_test_start</code> will become useful; this function
-creates the isolated environment that <code>orderly</code> uses to run a report,
-but then leaves you to interactively work with your report.</p>
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
 
 </body>
-
 </html>
