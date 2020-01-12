@@ -62,6 +62,7 @@ unpack_reference <- function(version, path = tempfile()) {
 
 
 prepare_orderly_remote_example <- function(path = tempfile()) {
+  skip_on_cran_windows()
   path_remote <- file.path(path, "remote")
   path_local <- file.path(path, "local")
 
@@ -136,6 +137,14 @@ new_counter <- function() {
     e$x
   }
 }
+
+
+skip_on_cran_windows <- function() {
+  if (!identical(Sys.getenv("NOT_CRAN"), "true") && is_windows()) {
+    testthat::skip("Test is slow on windows and running on CRAN")
+  }
+}
+
 
 if (Sys.getenv("NOT_CRAN") != "true") {
   options(orderly.nogit = TRUE)

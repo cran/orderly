@@ -100,6 +100,7 @@ test_that("close too many devices", {
 })
 
 test_that("sink imbalance", {
+  skip_on_cran_windows()
   path <- prepare_orderly_example("minimal")
   config <- orderly_config(path)
   path_script <- file.path(path, "src/example/script.R")
@@ -185,6 +186,7 @@ test_that("connection", {
 
 
 test_that("connection is saved to db", {
+  skip_on_cran_windows()
   path <- prepare_orderly_example("minimal")
 
   id1 <- orderly_run("example", root = path, echo = FALSE)
@@ -232,6 +234,7 @@ test_that("no data", {
 })
 
 test_that("use artefact", {
+  skip_on_cran_windows()
   path <- prepare_orderly_example("depends", testing = TRUE)
 
   path_example <- file.path(path, "src", "example")
@@ -276,6 +279,7 @@ test_that("use artefact", {
 })
 
 test_that("Can't commit report using nonexistant id", {
+  skip_on_cran_windows()
   path <- prepare_orderly_example("depends", testing = TRUE)
   id1 <- orderly_run("example", root = path, echo = FALSE)
   id2 <- orderly_run("depend", root = path, echo = FALSE)
@@ -285,6 +289,7 @@ test_that("Can't commit report using nonexistant id", {
 })
 
 test_that("resources", {
+  skip_on_cran_windows()
   path <- prepare_orderly_example("resources", testing = TRUE)
   id <- orderly_run("use_resource", root = path, echo = FALSE)
   p <- file.path(path, "draft", "use_resource", id)
@@ -304,6 +309,7 @@ test_that("resources", {
 
 
 test_that("markdown", {
+  skip_on_cran_windows()
   path <- prepare_orderly_example("demo")
 
   id <- orderly_run("html", root = path, echo = FALSE)
@@ -358,6 +364,7 @@ test_that("orderly_test_check requires test mode", {
 
 
 test_that("run with message", {
+  skip_on_cran_windows()
   path <- prepare_orderly_example("changelog", testing = TRUE)
   test_message <- "[label1] test"
   id <- orderly_run("example", root = path, echo = FALSE,
@@ -387,6 +394,7 @@ test_that("no unexpected artefact", {
 
 
 test_that("renamed dependencies are expected", {
+  skip_on_cran_windows()
   path <- prepare_orderly_example("depends", testing = TRUE)
   orderly_run("example", root = path, echo = FALSE)
   messages <- capture_messages(
@@ -435,6 +443,7 @@ test_that("multiple non-existent packages", {
 })
 
 test_that("use multiple versions of an artefact", {
+  skip_on_cran_windows()
   path <- prepare_orderly_example("depends", testing = TRUE)
 
   id1 <- orderly_run("example", root = path, echo = FALSE)
@@ -575,6 +584,7 @@ test_that("can't commit report twice", {
 
 
 test_that("missing parameters throws an error", {
+  skip_on_cran_windows()
   path <- prepare_orderly_example("demo")
   on.exit(unlink(path, recursive = TRUE))
 
@@ -660,6 +670,7 @@ test_that("delete multiple resources", {
 })
 
 test_that("multiple resources", {
+  skip_on_cran_windows()
   path <- prepare_orderly_example("resources", testing = TRUE)
   id <- orderly_run("multiple_resources", root = path, echo = FALSE)
   p <- file.path(path, "draft", "multiple_resources", id)
@@ -696,6 +707,7 @@ test_that("producing a directory is an error", {
 
 
 test_that("can run report with a view", {
+  skip_on_cran_windows()
   path <- prepare_orderly_example("demo")
   id <- orderly_run("view", root = path, echo = FALSE)
   orderly_commit(id, root = path)
@@ -707,6 +719,7 @@ test_that("can run report with a view", {
 
 
 test_that("can run a report from orderly with no database", {
+  skip_on_cran_windows()
   path <- prepare_orderly_example("db0", testing = TRUE)
   id <- orderly_run("example", root = path, echo = FALSE)
   expect_true(file.exists(
@@ -717,6 +730,7 @@ test_that("can run a report from orderly with no database", {
 
 
 test_that("can run a report from orderly with one (named) database", {
+  skip_on_cran_windows()
   path <- prepare_orderly_example("db1", testing = TRUE)
   id <- orderly_run("example", root = path, echo = FALSE)
   expect_true(file.exists(
@@ -727,6 +741,7 @@ test_that("can run a report from orderly with one (named) database", {
 
 
 test_that("can run a report from orderly with two databases", {
+  skip_on_cran_windows()
   path <- prepare_orderly_example("db2", testing = TRUE)
   id <- orderly_run("example", root = path, echo = FALSE)
   expect_true(file.exists(
@@ -737,6 +752,7 @@ test_that("can run a report from orderly with two databases", {
 
 
 test_that("Can use connections with two databases", {
+  skip_on_cran_windows()
   path <- prepare_orderly_example("db2", testing = TRUE)
   id <- orderly_run("connection", root = path, echo = FALSE)
   expect_true(file.exists(
@@ -759,4 +775,11 @@ test_that("prevent duplicate filenames", {
   expect_error(
     orderly_run("depend", root = path, echo = FALSE),
     "Orderly configuration implies duplicate files:\\s+- previous.rds:")
+})
+
+
+test_that("allow src/ in report name during run", {
+  path <- prepare_orderly_example("minimal")
+  id <- orderly_run("src/example", root = path, echo = FALSE)
+  expect_true(file.exists(file.path(path, "draft", "example", id)))
 })

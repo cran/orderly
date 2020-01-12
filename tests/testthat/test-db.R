@@ -30,6 +30,7 @@ test_that("custom fields", {
 })
 
 test_that("rebuild empty database", {
+  skip_on_cran_windows()
   path <- tempfile()
   orderly_init(path)
   file_copy("example_config.yml", file.path(path, "orderly_config.yml"),
@@ -42,6 +43,7 @@ test_that("rebuild empty database", {
 })
 
 test_that("rebuild nonempty database", {
+  skip_on_cran_windows()
   path <- prepare_orderly_example("minimal")
   id <- orderly_run("example", root = path, echo = FALSE)
   orderly_commit(id, root = path)
@@ -64,6 +66,7 @@ test_that("no transient db", {
 
 
 test_that("db includes parameters", {
+  skip_on_cran_windows()
   path <- prepare_orderly_example("demo")
   id <- orderly_run("other", parameters = list(nmin = 0.1), root = path,
                     echo = FALSE)
@@ -80,6 +83,7 @@ test_that("db includes parameters", {
 
 
 test_that("different parameter types are stored correctly", {
+  skip_on_cran_windows()
   path <- prepare_orderly_example("parameters", testing = TRUE)
   id <- orderly_run("example", parameters = list(a = 1, b = TRUE, c = "one"),
                     root = path, echo = FALSE)
@@ -96,6 +100,7 @@ test_that("different parameter types are stored correctly", {
 
 
 test_that("avoid unserialisable parameters", {
+  skip_on_cran_windows()
   path <- prepare_orderly_example("parameters", testing = TRUE)
   t <- Sys.Date()
   id <- orderly_run("example", parameters = list(a = t, b = TRUE, c = "one"),
@@ -131,6 +136,7 @@ test_that("dialects", {
 
 
 test_that("sources are listed in db", {
+  skip_on_cran_windows()
   path <- prepare_orderly_example("demo")
   id <- orderly_run("other", root = path, parameters = list(nmin = 0),
                     echo = FALSE)
@@ -155,6 +161,7 @@ test_that("sources are listed in db", {
 
 
 test_that("backup", {
+  skip_on_cran_windows()
   path <- create_orderly_demo()
   expect_message(
     orderly_backup(path),
@@ -173,6 +180,7 @@ test_that("backup", {
 
 
 test_that("db includes custom fields", {
+  skip_on_cran_windows()
   path <- prepare_orderly_example("demo")
   id <- orderly_run("minimal", root = path, echo = FALSE)
   orderly_commit(id, root = path)
@@ -189,6 +197,7 @@ test_that("db includes custom fields", {
 })
 
 test_that("db includes file information", {
+  skip_on_cran_windows()
   path <- prepare_orderly_example("demo")
   id <- orderly_run("multifile-artefact", root = path, echo = FALSE)
   p <- orderly_commit(id, root = path)
