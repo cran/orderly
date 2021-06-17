@@ -20,13 +20,14 @@ test_that("orderly_demo", {
 
   ## Ensure that the time manipulation affects the changelog too
   expect_true(nrow(DBI::dbReadTable(con, "changelog")) > 0)
+  expect_true(nrow(DBI::dbReadTable(con, "report_version_tag")) > 0)
 })
 
 
 test_that("git demo", {
   testthat::skip_on_cran()
-  path1 <- prepare_orderly_git_example(run_report = FALSE)
-  capture.output(path2 <- prepare_orderly_git_example(run_report = TRUE))
+  path1 <- test_prepare_orderly_git_example(run_report = FALSE)
+  capture.output(path2 <- test_prepare_orderly_git_example(run_report = TRUE))
 
   expect_equal(
     nrow(orderly_list2(root = path1[["local"]], draft = FALSE)), 0)
@@ -36,7 +37,7 @@ test_that("git demo", {
 
 
 test_that("demo infrastructure", {
-  path <- prepare_orderly_example("demo")
+  path <- test_prepare_orderly_example("demo")
   file.remove(file.path(path, "before.R"))
   expect_error(run_orderly_demo(path),
                "function .* not found in before\\.R")

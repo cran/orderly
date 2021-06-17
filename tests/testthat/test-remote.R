@@ -2,7 +2,7 @@ context("remote")
 
 
 test_that("defaults: null", {
-  path <- prepare_orderly_example("minimal")
+  path <- test_prepare_orderly_example("minimal")
   expect_null(orderly_default_remote_set(NULL, path))
   expect_error(orderly_default_remote_get(path, FALSE),
                "default remote has not been set yet")
@@ -34,7 +34,7 @@ test_that("orderly_pull_archive with wrong version", {
 test_that("pull dependencies", {
   dat <- prepare_orderly_remote_example()
 
-  expect_message(
+  expect_log_message(
     orderly_pull_dependencies("depend", root = dat$config,
                               remote = dat$remote),
     "\\[ pull\\s+ \\]  example:")
@@ -44,7 +44,7 @@ test_that("pull dependencies", {
   ## and update
   id3 <- orderly_run("example", root = dat$path_remote, echo = FALSE)
   orderly_commit(id3, root = dat$path_remote)
-  expect_message(
+  expect_log_message(
     orderly_pull_dependencies("depend", root = dat$config,
                               remote = dat$remote),
     "\\[ pull\\s+ \\]  example:")
@@ -53,17 +53,27 @@ test_that("pull dependencies", {
 })
 
 
+test_that("pull dependencies with implied name", {
+  dat <- prepare_orderly_remote_example()
+    expect_equal(nrow(orderly_list_archive(dat$config)), 0)
+  withr::with_dir(
+    file.path(dat$config$root, "src", "depend"),
+    orderly_pull_dependencies(remote = dat$remote))
+  expect_equal(nrow(orderly_list_archive(dat$config)), 1)
+})
+
+
 test_that("pull_dependencies counts dependencies", {
   dat <- prepare_orderly_remote_example()
 
-  expect_message(
+  expect_log_message(
     orderly_pull_dependencies("example", root = dat$config,
                               remote = dat$remote),
     "\\[ depends\\s+ \\]  example has 0 dependencies")
 
   id <- orderly_run("example", root = dat$path_remote, echo = FALSE)
   orderly_commit(id, root = dat$path_remote)
-  expect_message(
+  expect_log_message(
     orderly_pull_dependencies("depend", root = dat$config,
                               remote = dat$remote),
     "\\[ depends\\s+ \\]  depend has 1 dependency")
@@ -75,7 +85,7 @@ test_that("pull_dependencies counts dependencies", {
 test_that("pull from old remote", {
   oo <- options(orderly.nowarnings = TRUE)
   on.exit(options(oo))
-  path_local <- prepare_orderly_example("demo")
+  path_local <- test_prepare_orderly_example("demo")
   path_remote <- unpack_reference("0.6.0")
 
   ## In order to make this work we do need to update the data table.
@@ -90,7 +100,7 @@ test_that("pull from old remote", {
   DBI::dbDisconnect(db_local)
   DBI::dbDisconnect(db_remote)
 
-  expect_message(
+  expect_log_message(
     orderly_pull_archive("minimal", root = path_local, remote = path_remote),
     "^\\[ migrate")
 
@@ -124,7 +134,7 @@ test_that("pull from new remote", {
 test_that("pull migrated archive", {
   oo <- options(orderly.nowarnings = TRUE)
   on.exit(options(oo))
-  path_local <- prepare_orderly_example("demo")
+  path_local <- test_prepare_orderly_example("demo")
   unlink(file.path(path_local, "archive"), recursive = TRUE)
   dir.create(file.path(path_local, "archive"))
 
@@ -156,4 +166,225 @@ test_that("pull migrated archive", {
   ## And this is not necessary but also fails on the previous version
   ## because of issues re-running migrations.
   expect_silent(orderly_migrate(root = path_local))
+})
+
+
+test_that("silently ignore missing slack url, but resolve args", {
+  path <- test_prepare_orderly_example("minimal")
+
+  append_lines(
+    c("remote:",
+      "  default:",
+      "    driver: orderly::orderly_remote_path",
+      "    args:",
+      "      path: $ORDERLY_UNSET_REMOTE_PATH",
+      "    slack_url: $ORDERLY_UNSET_SLACK_URL"),
+    file.path(path, "orderly_config.yml"))
+
+  config <- orderly_config_$new(path)
+
+  clear_remote_cache()
+  remote <- withr::with_envvar(
+    c(ORDERLY_UNSET_REMOTE_PATH = path),
+    get_remote("default", config))
+  expect_equal(length(orderly:::cache$remotes), 1L)
+  expect_null(attr(remote, "slack_url"))
+  expect_false(attr(remote, "primary"))
+
+  clear_remote_cache()
+  remote <- withr::with_envvar(
+    c(ORDERLY_UNSET_REMOTE_PATH = path,
+      ORDERLY_UNSET_SLACK_URL = "http://example.com/slack"),
+    get_remote("default", config))
+  expect_equal(length(orderly:::cache$remotes), 1L)
+  expect_equal(attr(remote, "slack_url"), "http://example.com/slack")
+  expect_false(attr(remote, "primary"))
+})
+
+
+test_that("get remote", {
+  path_remote <- test_prepare_orderly_example("minimal")
+  path_local <- test_prepare_orderly_example("minimal")
+
+  ## Configure our remote:
+  path_config <- file.path(path_local, "orderly_config.yml")
+  txt <- readLines(path_config)
+  writeLines(c(
+    txt,
+    "remote:",
+    "  default:",
+    "    driver: orderly::orderly_remote_path",
+    "    args:",
+    paste("      path:", path_remote)),
+    path_config)
+
+  ## Get our remote:
+  remote <- orderly_remote(root = path_local)
+
+  expect_is(remote, "orderly_remote_path")
+  expect_equal(remote$name, "default")
+  expect_true(same_path(remote$config$root, path_remote))
+})
+
+test_that("teams url can be configured and silently ignored if missing", {
+  path <- test_prepare_orderly_example("minimal")
+
+  append_lines(
+    c("remote:",
+      "  default:",
+      "    driver: orderly::orderly_remote_path",
+      "    args:",
+      "      path: $ORDERLY_PATH",
+      "    teams_url: $ORDERLY_TEAMS_URL"),
+    file.path(path, "orderly_config.yml"))
+
+  config <- orderly_config_$new(path)
+
+  clear_remote_cache()
+  remote <- withr::with_envvar(
+    c(ORDERLY_PATH = path),
+    get_remote("default", config))
+  expect_equal(length(orderly:::cache$remotes), 1L)
+  expect_null(attr(remote, "teams_url"))
+  expect_false(attr(remote, "primary"))
+
+  clear_remote_cache()
+  remote <- withr::with_envvar(
+    c(ORDERLY_PATH = path,
+      ORDERLY_TEAMS_URL = "http://example.com/slack"),
+    get_remote("default", config))
+  expect_equal(length(orderly:::cache$remotes), 1L)
+  expect_equal(attr(remote, "teams_url"), "http://example.com/slack")
+  expect_false(attr(remote, "primary"))
+})
+
+test_that("orderly run remote passes instance to run", {
+  path_local <- test_prepare_orderly_example("demo")
+
+  ## Create a minimal remote class which will satisfy implements_remote
+  mock_remote <- R6::R6Class(
+    "orderly_mock_remote",
+    lock_objects = FALSE,
+    public = list(
+      list_reports = function() TRUE,
+      list_versions = function() TRUE,
+      pull = function() TRUE,
+      url_report = function() TRUE
+    )
+  )
+
+  ## Bit of awkwardness with adding run function here. We want to mock out new
+  ## function but can't do that inside the class.
+  remote <- mock_remote$new()
+  remote$run <- mockery::mock(TRUE, cycle = TRUE)
+  orderly_run_remote("minimal", remote = remote, root = path_local)
+
+  mockery::expect_called(remote$run, 1)
+  args <- mockery::mock_args(remote$run)[[1]]
+  expect_null(args$instance)
+
+  orderly_run_remote("minimal", remote = remote, root = path_local,
+                     instance = "test")
+
+  mockery::expect_called(remote$run, 2)
+  args <- mockery::mock_args(remote$run)[[2]]
+  expect_equal(args$instance, "test")
+})
+
+
+test_that("orderly_bundle_(pack|import)_remote do not use root/locate", {
+  skip_on_cran_windows()
+  path <- test_prepare_orderly_example("minimal")
+  remote <- orderly_remote_path(path)
+
+  temp <- tempfile()
+  on.exit(unlink(temp, recursive = TRUE))
+  dir_create(temp)
+
+  res <- withr::with_dir(
+    temp,
+    orderly_bundle_pack_remote("example", remote = remote,
+                               root = stop("don't force me"),
+                               locate = stop("don't force me"),
+                               dest = "."))
+
+  expect_true(file.exists(file.path(temp, basename(res))))
+  expect_equal(dirname(res), ".")
+
+  ans <- orderly_bundle_run(file.path(temp, basename(res)), echo = FALSE)
+
+  withr::with_dir(
+    temp,
+    orderly_bundle_import_remote(ans$path, remote = remote,
+                                 root = stop("don't force me"),
+                                 locate = stop("don't force me")))
+
+  expect_equal(remote$list_versions("example"), ans$id)
+})
+
+
+test_that("orderly run remote passes ref to run", {
+  path <- test_prepare_orderly_git_example()
+
+  ## Create a minimal remote class which will satisfy implements_remote
+  mock_remote <- R6::R6Class(
+    "orderly_mock_remote",
+    lock_objects = FALSE,
+    public = list(
+      list_reports = function() TRUE,
+      list_versions = function() TRUE,
+      pull = function() TRUE,
+      url_report = function() TRUE
+    )
+  )
+
+  ## Bit of awkwardness with adding run function here. We want to mock out new
+  ## function but can't do that inside the class.
+  remote <- mock_remote$new()
+  remote$run <- mockery::mock(TRUE, cycle = TRUE)
+  orderly_run_remote("minimal", remote = remote, root = path[["local"]])
+
+  mockery::expect_called(remote$run, 1)
+  args <- mockery::mock_args(remote$run)[[1]]
+  expect_null(args$ref)
+
+  orderly_run_remote("minimal", remote = remote, root = path[["local"]],
+                     ref = "master")
+
+  mockery::expect_called(remote$run, 2)
+  args <- mockery::mock_args(remote$run)[[2]]
+  expect_match(args$ref, "[0-9a-f]{40}")
+})
+
+
+test_that("can get status of remote queue", {
+  path_local <- test_prepare_orderly_example("demo")
+
+  status <- list(
+    tasks = list(
+      name = "slow3",
+      version = "20210423-143954-e634ca18",
+      key = "fungiform_kiwi",
+      status = "running"
+    )
+  )
+  mock_status <- mockery::mock(status)
+  ## Create a minimal remote class which will satisfy implements_remote
+  mock_remote <- R6::R6Class(
+    "orderly_mock_remote",
+    lock_objects = FALSE,
+    public = list(
+      list_reports = function() TRUE,
+      list_versions = function() TRUE,
+      pull = function() TRUE,
+      run = function() TRUE,
+      url_report = function() TRUE,
+      queue_status = function() mock_status()
+    )
+  )
+
+  remote <- mock_remote$new()
+  res <- orderly_remote_status(remote = remote)
+  mockery::expect_called(mock_status, 1)
+  expect_equal(res, status)
 })

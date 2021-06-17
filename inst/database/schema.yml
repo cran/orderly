@@ -35,6 +35,7 @@ report_version:
     - description: {type: TEXT, nullable: true}
     - connection: {type: BOOLEAN}
     - published: {type: BOOLEAN}
+    - elapsed: {type: DOUBLE PRECISION}
     - git_sha: {type: TEXT, nullable: true}
     - git_branch: {type: TEXT, nullable: true}
     - git_clean: {type: BOOLEAN, nullable: true}
@@ -138,6 +139,14 @@ report_version_package:
     - package_name: {type: TEXT}
     - package_version: {type: TEXT}
 
+# Database instances the report version pulled data from
+report_version_instance:
+  columns:
+    - id: {type: SERIAL}
+    - report_version: {fk: report_version.id}
+    - type: {type: TEXT}
+    - instance: {type: TEXT}
+
 # Values here will be populated by orderly as we keep a list in the
 # package and we should not repeat that definition.
 artefact_format:
@@ -164,12 +173,6 @@ file_artefact:
 # We could go more detailed here and get the report name and id but
 # that would duplicate information so I'm not doing that here.  (The
 # information redundant in the yml/rds but that's ok I feel).
-#
-# This is a bit of a risk because it is going to assume that the
-# artefact really was included in the upstream report.  But we can
-# depend on _any_ file not just dependencies, so this might fail for
-# montagu-reports which would make this inviable.  That should be
-# tightened up a lot in the recipe_read!
 depends:
   columns:
     - id: {type: SERIAL}
@@ -227,3 +230,31 @@ parameters:
           between integers and floating pointe numbers, instead using
           just "number" for both.  When storing booleans, we store
           lower case "true"/"false", like in JSON, and not like R.
+
+tag:
+  columns:
+    - id: {type: TEXT}
+
+report_version_tag:
+  columns:
+    - id: {type: SERIAL}
+    - report_version: {fk: report_version.id}
+    - tag: {fk: tag.id}
+
+report_batch:
+  columns:
+    - id: {type: TEXT}
+
+report_version_batch:
+  columns:
+    - report_version: {fk: report_version.id}
+    - report_batch: {fk: report_batch.id}
+
+workflow:
+  columns:
+    - id: {type: TEXT}
+
+report_version_workflow:
+  columns:
+    - report_version: {type: TEXT}
+    - workflow_id: {type: TEXT}

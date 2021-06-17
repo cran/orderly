@@ -1,3 +1,7 @@
+test_cache <- new.env(parent = emptyenv())
+test_cache$examples <- list()
+
+
 with_wd <- function(path, code) {
   owd <- setwd(path)
   on.exit(setwd(owd))
@@ -16,6 +20,12 @@ skip_on_windows <- function() {
   testthat::skip_on_os("windows")
 }
 
+skip_on_windows_ci <- function() {
+  if (isTRUE(as.logical(Sys.getenv("CI")))) {
+    skip_on_windows()
+  }
+}
+
 
 skip_on_solaris <- function() {
   testthat::skip_on_os("solaris")
@@ -23,7 +33,7 @@ skip_on_solaris <- function() {
 
 
 ## Via wikimedia:
-MAGIC_PNG <- as.raw(c(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a))
+MAGIC_PNG <- as.raw(c(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a)) # nolint
 
 with_sqlite <- function(path, fun) {
   con <- DBI::dbConnect(RSQLite::SQLite(), path)
@@ -76,18 +86,13 @@ prepare_orderly_remote_example <- function(path = tempfile()) {
 
   path_local <- prepare_orderly_example("depends", testing = TRUE)
 
-  ## Patch the report to use non-draft dependencies:
-  p <- file.path(path_local, "src", "depend", "orderly.yml")
-  d <- sub("draft: true", "draft: false", readLines(p))
-  writeLines(d, p)
-
   r <- list(remote = list(
               default = list(
                 driver = "orderly::orderly_remote_path",
                 args = list(path = path_remote))))
   append_lines(yaml::as.yaml(r), file.path(path_local, "orderly_config.yml"))
 
-  config <- orderly_config(path_local)
+  config <- orderly_config_$new(path_local)
   remote <- get_remote(NULL, config)
 
   list(path_remote = path_remote,
@@ -96,6 +101,41 @@ prepare_orderly_remote_example <- function(path = tempfile()) {
        remote = remote,
        id1 = id1,
        id2 = id2)
+}
+
+
+prepare_orderly_query_example <- function(draft = FALSE) {
+  if (is.null(test_cache$examples$query)) {
+    skip_on_cran_windows()
+    root <- prepare_orderly_example("demo")
+
+    f <- function(nmin, tags = NULL) {
+      id <- orderly_run("other", root = root, echo = FALSE,
+                        parameters = list(nmin = nmin), tags = tags)
+      orderly_commit(id, root = root)
+      id
+    }
+
+    ids <- c(f(0.1), f(0.2, "plot"), f(0.3))
+
+    zip <- tempfile(fileext = ".zip")
+    withr::with_dir(root, zip::zipr(zip, list.files()))
+
+    test_cache$examples$query <- zip
+  }
+
+  path <- tempfile()
+  dir.create(path)
+  zip::unzip(test_cache$examples$query, exdir = path)
+  ids <- dir(file.path(path, "archive", "other"))
+  if (draft) {
+    file.rename(
+      file.path(path, "archive", "other", ids),
+      file.path(path, "draft", "other", ids))
+    unlink(file.path(path, "orderly.sqlite"))
+  }
+
+  list(root = path, ids = sort(ids))
 }
 
 
@@ -146,6 +186,43 @@ skip_on_cran_windows <- function() {
 }
 
 
+expect_log_message <- function(expr, ...) {
+  res <- testthat::evaluate_promise(expr)
+  expect_match(
+    crayon::strip_style(res$messages),
+    ..., all = FALSE)
+}
+
+capture_logs <- function(expr) {
+  res <- testthat::evaluate_promise(expr)
+  res$messages <- crayon::strip_style(res$messages)
+  res
+}
+
+
 if (Sys.getenv("NOT_CRAN") != "true") {
   options(orderly.nogit = TRUE)
+}
+
+append_lines <- function(text, filename) {
+  prev <- readLines(filename)
+  writeLines(c(prev, text), filename)
+}
+
+normalize_path <- function(path) {
+  normalizePath(path, "/", TRUE)
+}
+
+
+## Wrappers around setup that skip appropriately:
+test_prepare_orderly_git_example <- function(...) {
+  skip_if_no_git()
+  skip_on_cran_windows()
+  prepare_orderly_git_example(...)
+}
+
+
+test_prepare_orderly_example <- function(...) {
+  skip_on_cran_windows()
+  prepare_orderly_example(...)
 }

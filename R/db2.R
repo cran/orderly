@@ -8,13 +8,9 @@
 ## namespace/module feature so that implementation details can be
 ## hidden away a bit further.
 
-ORDERLY_SCHEMA_VERSION <- "0.0.9"
-
-## These will be used in a few places and even though they're not
-## super likely to change it would be good
-ORDERLY_SCHEMA_TABLE <- "orderly_schema"
-ORDERLY_MAIN_TABLE <- "report_version"
-ORDERLY_TABLE_LIST <- "orderly_schema_tables"
+orderly_schema_version <- "1.2.39"
+orderly_schema_table <- "orderly_schema"
+orderly_table_list <- "orderly_schema_tables"
 
 report_db_schema_read <- function(fields = NULL, dialect = "sqlite") {
   d <- yaml_read(orderly_file("database/schema.yml"))
@@ -33,7 +29,7 @@ report_db_schema_read <- function(fields = NULL, dialect = "sqlite") {
     f <- set_names(Map(function(t, n) list(type = t, nullable = n),
                        rep("character", nrow(fields)), !fields$required),
                    fields$name)
-    d[[ORDERLY_MAIN_TABLE]]$columns <- c(d[[ORDERLY_MAIN_TABLE]]$columns, f)
+    d[["report_version"]]$columns <- c(d[["report_version"]]$columns, f)
   }
 
   prepare_table <- function(x) {
@@ -90,7 +86,7 @@ report_db_schema_read <- function(fields = NULL, dialect = "sqlite") {
       x$values <- data_frame(name = valid_formats())
     } else if (x$name == "orderly_schema") {
       x$values <- data_frame(
-        schema_version = ORDERLY_SCHEMA_VERSION,
+        schema_version = orderly_schema_version,
         orderly_version = as.character(utils::packageVersion("orderly")),
         created = Sys.time())
     } else if (x$name == "orderly_schema_tables") {
@@ -130,10 +126,10 @@ report_db_schema <- function(fields = NULL, dialect = "sqlite") {
 report_db_init <- function(con, config, must_create = FALSE, validate = TRUE) {
   sqlite_pragma_fk(con, TRUE)
 
-  if (!DBI::dbExistsTable(con, ORDERLY_SCHEMA_TABLE)) {
+  if (!DBI::dbExistsTable(con, orderly_schema_table)) {
     report_db_init_create(con, config, report_db_dialect(con))
   } else if (must_create) {
-    stop(sprintf("Table '%s' already exists", ORDERLY_SCHEMA_TABLE))
+    stop(sprintf("Table '%s' already exists", orderly_schema_table))
   } else if (validate) {
     report_db_open_existing(con, config)
   }
@@ -143,6 +139,7 @@ report_db_init <- function(con, config, must_create = FALSE, validate = TRUE) {
 report_db_init_create <- function(con, config, dialect) {
   dat <- report_db_schema(config$fields, dialect)
   dat$values$changelog_label <- config$changelog
+  dat$values$tag <- data_frame(id = config$tags)
 
   DBI::dbBegin(con)
   on.exit(DBI::dbRollback(con))
@@ -159,8 +156,8 @@ report_db_init_create <- function(con, config, dialect) {
 
 
 report_db_open_existing <- function(con, config) {
-  version_db <- DBI::dbReadTable(con, ORDERLY_SCHEMA_TABLE)$schema_version
-  version_package <- ORDERLY_SCHEMA_VERSION
+  version_db <- DBI::dbReadTable(con, orderly_schema_table)$schema_version
+  version_package <- orderly_schema_version
   if (numeric_version(version_db) < numeric_version(version_package)) {
     stop("orderly db needs rebuilding with orderly::orderly_rebuild()",
          call. = FALSE)
@@ -189,14 +186,24 @@ report_db_open_existing <- function(con, config) {
       "changelog labels have changed: rebuild with orderly::orderly_rebuild()",
       call. = FALSE)
   }
+
+  tag <- DBI::dbReadTable(con, "tag")$id
+  ok <- setequal(tag, config$tags)
+  if (!ok) {
+    stop(
+      "tags have changed: rebuild with orderly::orderly_rebuild()",
+      call. = FALSE)
+  }
 }
 
 
-report_db_import <- function(name, id, config) {
+report_db_import <- function(name, id, config, timeout = 10) {
   orderly_log("import", sprintf("%s:%s", name, id))
   con <- orderly_db("destination", config)
   on.exit(DBI::dbDisconnect(con))
-  DBI::dbBegin(con)
+  ## sqlite busy handler expects milliseconds
+  RSQLite::sqliteSetBusyHandler(con, timeout * 1000)
+  DBI::dbExecute(con, "BEGIN IMMEDIATE")
   report_data_import(con, name, id, config)
   DBI::dbCommit(con)
 }
@@ -208,7 +215,7 @@ report_db_rebuild <- function(config, verbose = TRUE) {
   con <- orderly_db("destination", config, validate = FALSE)
   on.exit(DBI::dbDisconnect(con))
 
-  if (DBI::dbExistsTable(con, ORDERLY_TABLE_LIST)) {
+  if (DBI::dbExistsTable(con, orderly_table_list)) {
     report_db_destroy(con, config)
   }
   report_db_init(con, config)
@@ -232,8 +239,8 @@ report_db_needs_rebuild <- function(config) {
   con <- orderly_db("destination", config, FALSE, FALSE)
   on.exit(DBI::dbDisconnect(con))
 
-  d <- DBI::dbReadTable(con, ORDERLY_SCHEMA_TABLE)
-  numeric_version(d$schema_version) < numeric_version(ORDERLY_SCHEMA_VERSION)
+  d <- DBI::dbReadTable(con, orderly_schema_table)
+  numeric_version(d$schema_version) < numeric_version(orderly_schema_version)
 }
 
 
@@ -262,6 +269,7 @@ report_data_import <- function(con, name, id, config) {
     displayname = dat_rds$meta$displayname,
     description = dat_rds$meta$description,
     published = FALSE, # TODO: this eventually comes out
+    elapsed = dat_rds$meta$elapsed,
     connection = dat_rds$meta$connection,
     git_sha = dat_rds$git$sha %||% NA_character_,
     git_branch = dat_rds$git$branch %||% NA_character_,
@@ -275,12 +283,14 @@ report_data_import <- function(con, name, id, config) {
   if (!is.null(dat_rds$meta$extra_fields)) {
     custom <- vcapply(dat_rds$meta$extra_fields, function(x) as.character(x))
     custom <- custom[!is.na(custom)]
-    report_version_custom_fields <- data_frame(
-      report_version = id,
-      key = names(custom),
-      value = unname(custom))
-    DBI::dbWriteTable(con, "report_version_custom_fields",
-                      report_version_custom_fields, append = TRUE)
+    if (length(custom) > 0) {
+      report_version_custom_fields <- data_frame(
+        report_version = id,
+        key = names(custom),
+        value = unname(custom))
+      DBI::dbWriteTable(con, "report_version_custom_fields",
+                        report_version_custom_fields, append = TRUE)
+    }
   }
 
   if (!is.null(dat_rds$meta$view)) {
@@ -384,6 +394,13 @@ report_data_import <- function(con, name, id, config) {
     }
   }
 
+  tags <- dat_rds$meta$tags
+  if (!is.null(tags)) {
+    report_version_tag <- data_frame(report_version = id, tag = tags)
+    DBI::dbWriteTable(con, "report_version_tag", report_version_tag,
+                      append = TRUE)
+  }
+
   if (!is.null(dat_rds$meta$parameters)) {
     p <- dat_rds$meta$parameters
     parameters <- data_frame(
@@ -392,6 +409,54 @@ report_data_import <- function(con, name, id, config) {
       type = report_db_parameter_type(p),
       value = report_db_parameter_serialise(p))
     DBI::dbWriteTable(con, "parameters", parameters, append = TRUE)
+  }
+
+  if (!is.null(dat_rds$meta$batch_id)) {
+    sql_batch <- "SELECT id FROM report_batch WHERE id = $1"
+    if (nrow(DBI::dbGetQuery(con, sql_batch, dat_rds$meta$batch_id)) == 0L) {
+      batch <- data_frame(
+        id = dat_rds$meta$batch_id
+      )
+      DBI::dbWriteTable(con, "report_batch", batch, append = TRUE)
+    }
+    report_version_batch <- data_frame(
+      report_version = id,
+      report_batch = dat_rds$meta$batch_id
+    )
+    DBI::dbWriteTable(con, "report_version_batch", report_version_batch,
+                      append = TRUE)
+  }
+
+  if (!is.null(dat_rds$meta$workflow)) {
+    sql_batch <- "SELECT id FROM workflow WHERE id = $1"
+    if (nrow(DBI::dbGetQuery(con, sql_batch, dat_rds$meta$workflow)) == 0L) {
+      workflow <- data_frame(id = dat_rds$meta$workflow)
+      DBI::dbWriteTable(con, "workflow", workflow, append = TRUE)
+    }
+    report_version_workflow <- data_frame(
+      report_version = id,
+      workflow_id = dat_rds$meta$workflow
+    )
+    DBI::dbWriteTable(con, "report_version_workflow", report_version_workflow,
+                      append = TRUE)
+  }
+
+  ## DB instance:
+  if (!is.null(dat_rds$meta$instance)) {
+    ## Only add row where instance is set
+    instances <- lapply(names(dat_rds$meta$instance), function(type) {
+      dat_rds$meta$instance[[type]]
+    })
+    names(instances) <- names(dat_rds$meta$instance)
+    instances <- instances[!vlapply(instances, is.null)]
+    if (length(instances) > 0) {
+      report_version_instance <- data_frame(
+        report_version = id,
+        type = names(instances),
+        instance = list_to_character(instances))
+      DBI::dbWriteTable(con, "report_version_instance", report_version_instance,
+                        append = TRUE)
+    }
   }
 
   sql <- "UPDATE report SET latest = $1 WHERE name = $2"
@@ -461,7 +526,7 @@ report_db_destroy <- function(con, config) {
   dialect <- report_db_dialect(con)
   schema <- names(report_db_schema(config$fields, dialect)$tables)
   existing <- DBI::dbListTables(con)
-  known <- DBI::dbReadTable(con, ORDERLY_TABLE_LIST)[[1L]]
+  known <- DBI::dbReadTable(con, orderly_table_list)[[1L]]
   drop <- intersect(known, existing)
   extra <- setdiff(intersect(schema, existing), drop)
 

@@ -65,7 +65,7 @@ test_that("detach head checks", {
 
 test_that("fetch / detach / pull", {
   testthat::skip_on_cran()
-  path <- prepare_orderly_git_example()
+  path <- test_prepare_orderly_git_example()
   path1 <- path[["origin"]]
   path2 <- path[["local"]]
 
@@ -101,7 +101,7 @@ test_that("checkout_branch checks", {
 
 test_that("detect missing ref", {
   testthat::skip_on_cran()
-  path <- prepare_orderly_git_example()
+  path <- test_prepare_orderly_git_example()
   path1 <- path[["origin"]]
   path2 <- path[["local"]]
 
@@ -133,10 +133,11 @@ test_that("detect missing ref", {
 test_that("run in detached head", {
   testthat::skip_on_cran()
   path <- unzip_git_demo()
-  orderly_run("other", list(nmin = 0), root = path, ref = "other",
-              echo = FALSE)
 
-  expect_equal(orderly_list(path), "minimal")
+  orderly_run_internal("other", list(nmin = 0), root = path, ref = "other",
+                       echo = FALSE)
+
+  expect_equal(orderly_list(path), c("global", "minimal"))
   d <- orderly_list_drafts(path)
   expect_equal(nrow(d), 1L)
   expect_equal(d$name, "other")
@@ -148,53 +149,23 @@ test_that("run in detached head", {
   expect_null(rds$git$status)
 })
 
-test_that("run missing ref", {
-  testthat::skip_on_cran()
-  path <- prepare_orderly_git_example()
-  path1 <- path[["origin"]]
-  path2 <- path[["local"]]
-
-  sha1 <- git_ref_to_sha("HEAD", path1)
-  sha2 <- git_ref_to_sha("HEAD", path2)
-
-  runner <- orderly_runner(path2)
-
-  expect_false(git_ref_exists("unknown", path2))
-
-  expect_error(runner$queue("minimal", ref = "unknown"),
-               "Git reference 'unknown' not found")
-  expect_equal(runner$data$length(), 0)
-
-  id <- runner$queue("minimal", ref = sha1, update = TRUE)
-  expect_is(id, "character")
-  expect_equal(runner$data$length(), 1)
-
-  expect_true(git_ref_exists(sha1, path2))
-  expect_equal(git_ref_to_sha("HEAD", path2), sha2)
-
-  id <- runner$queue("minimal", ref = NULL)
-  expect_equal(git_ref_to_sha("HEAD", path2), sha2)
-
-  id <- runner$queue("minimal", ref = NULL, update = TRUE)
-  expect_equal(git_ref_to_sha("HEAD", path2), sha1)
-})
 
 
 test_that("fetch before run", {
   testthat::skip_on_cran()
-  path <- prepare_orderly_git_example()
+  path <- test_prepare_orderly_git_example()
   path1 <- path[["origin"]]
   path2 <- path[["local"]]
   sha1 <- git_ref_to_sha("HEAD", path1)
   sha2 <- git_ref_to_sha("HEAD", path2)
 
-  id1 <- orderly_run("minimal", root = path2, echo = FALSE,
-                     ref = "origin/master")
+  id1 <- orderly_run_internal("minimal", root = path2, echo = FALSE,
+                              ref = "origin/master")
   expect_equal(git_ref_to_sha("HEAD", path2), sha2)
   expect_equal(git_ref_to_sha("origin/master", path2), sha2)
 
-  id2 <- orderly_run("minimal", root = path2, echo = FALSE,
-                     ref = "origin/master", fetch = TRUE)
+  id2 <- orderly_run_internal("minimal", root = path2, echo = FALSE,
+                              ref = "origin/master", fetch = TRUE)
 
   expect_equal(git_ref_to_sha("HEAD", path2), sha2)
   expect_equal(git_ref_to_sha("origin/master", path2), sha1)
@@ -209,7 +180,7 @@ test_that("fetch before run", {
 
 test_that("handle failure", {
   testthat::skip_on_cran()
-  path <- prepare_orderly_git_example()
+  path <- test_prepare_orderly_git_example()
   r <- git_run("unknown-command", root = path[["origin"]])
   expect_false(r$success)
   expect_error(

@@ -1,6 +1,6 @@
 Package: orderly
 Title: Lightweight Reproducible Reporting
-Version: 1.0.4
+Version: 1.3.0
 Description: Order, create and store reports from R.  By defining a
     lightweight interface around the inputs and outputs of an
     analysis, a lot of the repetitive work for reproducible research
@@ -23,15 +23,15 @@ Authors@R: c(person("Rich", "FitzJohn", role = c("aut", "cre"),
 URL: https://github.com/vimc/orderly
 BugReports: https://github.com/vimc/orderly/issues
 SystemRequirements: git
-Imports: DBI, R6, RSQLite, digest, docopt, fs (>= 1.2.7), ids, withr,
-        yaml, zip (>= 2.0.0)
+Imports: DBI, R6, RSQLite (>= 2.2.4), crayon, digest, docopt, fs (>=
+        1.2.7), gert, ids, withr, yaml, zip (>= 2.0.0)
 Suggests: httr, jsonlite, knitr, mockery, processx, rmarkdown,
-        testthat, vaultr (>= 1.0.0)
-RoxygenNote: 6.1.1
+        testthat, vaultr (>= 1.0.4)
+RoxygenNote: 7.1.1
 VignetteBuilder: knitr
 Language: en-GB
 NeedsCompilation: no
-Packaged: 2020-01-12 13:07:22 UTC; rich
+Packaged: 2021-06-17 15:58:42 UTC; rfitzjoh
 Author: Rich FitzJohn [aut, cre],
   Robert Ashton [aut],
   Alex Hill [aut],
@@ -42,4 +42,4 @@ Author: Rich FitzJohn [aut, cre],
   Imperial College of Science, Technology and Medicine [cph]
 Maintainer: Rich FitzJohn <rich.fitzjohn@gmail.com>
 Repository: CRAN
-Date/Publication: 2020-01-12 14:40:02 UTC
+Date/Publication: 2021-06-17 16:40:02 UTC

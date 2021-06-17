@@ -53,7 +53,7 @@
 ##' readLines(file.path(path, "src", "myreport", "orderly.yml"))
 orderly_new <- function(name, root = NULL, locate = TRUE, quiet = FALSE,
                         template = NULL) {
-  config <- orderly_config_get(root, locate)
+  config <- orderly_config(root, locate)
   assert_scalar_character(name)
   if (grepl("[[:space:]]", name)) {
     stop("'name' cannot contain spaces")
@@ -68,6 +68,7 @@ orderly_new <- function(name, root = NULL, locate = TRUE, quiet = FALSE,
       if (has_template(config$root, "default")) "default" else "system"
   }
 
+  dir.create(path_src(config$root), FALSE, TRUE)
   if (template == "system") {
     orderly_new_system(dest, config)
   } else {

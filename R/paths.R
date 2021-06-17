@@ -22,6 +22,11 @@ path_archive <- function(root, name = NULL) {
 }
 
 
+path_remote_cache <- function(root) {
+  file.path(root, ".orderly", "remote", "cache")
+}
+
+
 path_archive_broken <- function() {
   "archive_broken"
 }
@@ -35,15 +40,16 @@ path_orderly_run_rds <- function(path) {
   file.path(path, "orderly_run.rds")
 }
 
+path_orderly_fail_rds <- function(path) {
+  file.path(path, "orderly_fail.rds")
+}
+
 path_orderly_envir_yml <- function(path) {
   file.path(path, "orderly_envir.yml")
 }
 
-path_runner_log <- function(path) {
-  file.path(path, "runner", "log")
-}
-path_runner_id <- function(path) {
-  file.path(path, "runner", "id")
+path_orderly_log <- function(path) {
+  file.path(path, "orderly.log")
 }
 
 
@@ -63,8 +69,13 @@ path_changelog_txt <- function(path, type) {
 }
 
 
-path_db_backup <- function(root, file) {
-  file.path(root, "backup", "db", basename(file), fsep = "/")
+path_db_backup <- function(root, file, suffix = NULL) {
+  if (is.null(suffix)) {
+    filename <- basename(file)
+  } else {
+    filename <- paste0(basename(file), suffix)
+  }
+  file.path(root, "backup", "db", filename, fsep = "/")
 }
 
 

@@ -1,7 +1,7 @@
 context("envir")
 
 test_that("set env", {
-  path <- prepare_orderly_example("minimal")
+  path <- test_prepare_orderly_example("minimal")
   cfg <- c("database:",
            "  source:",
            "    driver: RSQLite::SQLite",
@@ -10,9 +10,9 @@ test_that("set env", {
            "      user: $MY_USER")
   writeLines(cfg, file.path(path, "orderly_config.yml"))
 
-  config <- orderly_config(path)
+  config <- orderly_config_$new(path)
 
-  expect_error(orderly_db_args(config$database$source, config),
+  expect_error(orderly_db_args(config$database$source, config, "loc"),
                "Environment variable 'MY_USER' is not set")
 
   writeLines(c("MY_USER: foo"), path_orderly_envir_yml(path))

@@ -1,6 +1,262 @@
+# orderly 1.2.41
+
+* Clearer error message where dependency resolution fails due to a query dependency (vimc-4742)
+
+# orderly 1.2.39
+
+* Remove `orderly_workflow` in favour of supporting workflows through orderly.server (mrc-2275)
+
+# orderly 1.2.38
+
+* Much clearer error message where dependency resolution fails due to a query dependency (vimc-4499)
+
+# orderly 1.2.37
+
+* Add function `orderly_remote_status` to return details of currently running and queued reports on the remote queue.
+
+# orderly 1.2.32
+
+* `orderly_graph` arg `max_depth` now truncates depth of the tree instead of throwing error and arg `recursion_limit` added which works how `max_depth` used to
+
+# orderly 1.2.30
+
+* New function `orderly_info` which returns details from report runs, both successful and failed (VIMC-4619)
+
+# orderly 1.2.29
+
+* `orderly_run`, `orderly_run_internal` and `bundle_run` will now save a `orderly_fail.rds` if run fails containing metadata and info about failure reason (VIMC-4037)
+
+# orderly 1.2.25
+
+* `orderly_cleanup` will now sanitise the report name passed to it
+* `orderly_cleanup` will now print summary of how many items will be deleted (#265)
+
+# orderly 1.2.24
+
+* `orderly_run_remote` checks that ref exists before running (VIMC-4574)
+
+# orderly 1.2.23
+
+* `orderly_run` with non-boolean `use_draft` and fixed ID dependency works (#259)
+
+# orderly 1.2.20
+
+* `orderly_pull_archive` is now more tolerant of trailing slashes (#260)
+
+# orderly 1.2.19
+
+* New functions `orderly_bundle_pack_remote` and `orderly_bundle_import_remote` which create a bundle from a remote and return the completed bundle back to the remote (VIMC-4457)
+
+# orderly 1.2.18
+
+* Allow `orderly_bundle_import` to accept a filename that has been renamed from `<id>.zip`. While this is not generally desirable, it may be needed for some workflows (VIMC-4382)
+
+# orderly 1.2.17
+
+* Fixes bug where `orderly_bundle_pack` failed when the orderly tree and temporary directory were on different filesystems (VIMC-4354)
+
+# orderly 1.2.16
+
+* Fixes bug where `orderly_bundle_run` failed when using a relative path for a working directory (VIMC-4337)
+
+# orderly 1.2.15
+
+* Fixes bug where default parameter values were not used in resolving query dependencies (VIMC-4135)
+
+# orderly 1.2.14
+
+* `orderly::orderly_new()` works in an orderly repo that does not (yet) have a `src/` directory (VIMC-4032)
+
+# orderly 1.2.13
+
+* Remove `orderly::orderly_runner` which has been moved to `vimc/orderly.server` (VIMC-4073)
+
+# orderly 1.2.12
+
+* Add new function `orderly::orderly_config` to return an object representing the config (VIMC-4048)
+
+# orderly 1.2.11
+
+* Added a new "bundle" concept, for collecting together all requirements for a report from orderly that can be run elsewhere (e.g., on a HPC) using new functions `orderly::orderly_bundle_pack`, `orderly::orderly_bundle_run` and `orderly::orderly_bundle_import`. This interface will be expanded and the interface may change somewhat (VIMC-3825)
+
+# orderly 1.2.10
+
+* Add function `get_report_parameters` to list parameters for a report at a particular commit id (VIMC-3953)
+
+# orderly 1.2.9
+
+* Add function `get_reports` to list reports available for a particular branch and commit from orderly_runner (VIMC-3945)
+
+# orderly 1.2.8
+
+* Add function `git_commits` to list commits for a particular branch from orderly_runner (VIMC-3941)
+
+# orderly 1.2.7
+
+* Add function `git_branches_no_merged` to get unmerged branches from orderly_runner (VIMC-3857)
+
+# orderly 1.2.5
+
+* Add ability to run workflow from CLI (VIMC-3873)
+
+# orderly 1.2.4
+
+* Error messages and stack traces are now preserved in `orderly.log` after a failed run; this primarily impacts the cli runner and then primarily when being run in parallel where the log is not printed to screen (VIMC-3841)
+
+# orderly 1.2.3
+
+* New function `orderly::orderly_workflow` allows users to run a "workflow" - a list of reports which to be run in order. Workflows are configured via a yml file in `workflows/` directory.
+
+# orderly 1.2.0
+
+* `orderly::orderly_data()` has been removed as do not believe anyone was using it, and it is superseded by `orderly::orderly_develop_start()` (VIMC-3611)
+* Some internally used arguments have been removed from `orderly::orderly_run` (`id_file`, `batch_id`, `ref` and `fetch`). These were not intended for direct use by users (VIMC-3539)
+
+# orderly 1.1.35
+
+* `orderly::orderly_pull_dependencies()` works where the dependencies use query ids, and `orderly::orderly_pull_archive()` accepts query ids (rather than just `latest`) as an argument (VIMC-3789)
+
+# orderly 1.1.34
+
+* `orderly::orderly_run_remote()` takes an instance argument to allow users to specify the source DB (VIMC-3698)
+
+# orderly 1.1.32
+
+* New function `orderly::orderly_push_archive()` which allows pushing of an archive to a remote.  The `orderly::orderly_remote_path` remote supports this, though care should be taken with what you push! (VIMC-3784)
+
+# orderly 1.1.31
+
+* `orderly::orderly_rebuild()` creates a dated backup of the database before running, allowing this potentially destructive operation to be recovered from (VIMC-3702)
+
+# orderly 1.1.28
+
+* `orderly::orderly_develop_clean()` no longer deletes artefacts that are re-exported from sources (VIMC-3671, reported by @cewalters)
+
+# orderly 1.1.27
+
+* Allow `orderly::orderly_develop_start()` to use environment variables declared in `orderly.yml` and defined in `orderly_envir.yml` (#214, VIMC-3669, reported by @sangeetabhatia03)
+
+# orderly 1.1.26
+
+* Add ability to post report commit notification to Microsoft Teams (VIMC-3640)
+
+# orderly 1.1.24
+
+* Batches of parameters can be supplied to `orderly batch` using a csv file via `--file` (VIMC-3569)
+
+# orderly 1.1.23
+
+* New function `orderly::orderly_remote()` for getting an "orderly remote" object, as declared in the `orderly_config.yml` (VIMC-3655)
+
+# orderly 1.1.20
+
+* Add support for running batches of orderly reports that differ in their parameters, available via `orderly::orderly_batch` and with the CLI as `orderly batch` (VIMC-3603)
+
+# orderly 1.1.15
+
+* Fix bug where report downloading did not work for some pathological windows paths (VIMC-3595)
+
+# orderly 1.1.14
+
+* Fix bug in instance selection, probably introduced in 1.0.6 (VIMC-3589)
+
+# orderly 1.1.13
+
+* Enable implicit report name for `orderly::orderly_run` and `orderly::orderly_pull_dependenices` (VIMC-3512, #170)
+
+# orderly 1.1.12
+
+* Introduces a basic query interface for searching for reports that match criteria based on parameters and tags, which can be used directly `orderly::orderly_search` or when declaring dependencies (VIMC-3538)
+
+# orderly 1.1.11
+
+* Environment variables can be used in orderly reports by using the `environment:` field in `orderly.yml` (VIMC-3558)
+
+# orderly 1.1.10
+
+* Secrets can be read from the vault and used in orderly reports (VIMC-3536)
+
+# orderly 1.1.9
+
+* Better parsing of parameters passed on the command line, allowing more parameters to be passed through, and coping better with shell quoting (VIMC-3550)
+
+# orderly 1.1.6
+
+* Environment variables in `orderly_envir.yml` are available during report run (#180, VIMC-3530)
+
+# orderly 1.1.5
+
+* Introduce the concept of "tags"; these are immutable and exist at the level of a report version.  Currently there is nothing that can be done with tags, but these will become useful in conjunction with [OrderlyWeb](https://github.com/vimc/orderly-web) (VIMC-3514)
+
+# orderly 1.1.4
+
+* Automatic creation of `.gitignore` files with `orderly::orderly_use_gitignore` (VIMC-3513, reported by @jeffeaton)
+
+# orderly 1.1.3
+
+* The `orderly::orderly_develop_*` functions are now permissive and allow some invalid `orderly.yml` to continue - in particular, the partially complete template generated by `orderly::orderly_new` can be directly used (VIMC-3510)
+
+# orderly 1.1.2
+
+* Improved error message with misformatted artefacts (VIMC-3511, reported by @jeffeaton)
+* The first of `usethis` inspired functions `orderly::orderly_use_resource()`, `orderly::orderly_use_source()` and `orderly::orderly_use_package()`which can add a resource, source or packages into the orderly.yml (VIMC-3503)
+
+# orderly 1.1.1
+
+* Dependencies can be resolved as if they were to be run on a remote (including appropriate selection of "latest" dependencies).  This is to support future decentralised workflows (VIMC-3473)
+
+# orderly 1.1.0
+
+* New report development mode, via `orderly_develop_start`, `orderly_develop_status` and `orderly_develop_clean`.  These largely supersede `orderly_test_start`, though the latter remains for now (VIMC-3404)
+
+# orderly 1.0.15
+
+* Depending on draft reports, including with `use_draft = "newer"`, no longer pulls in failed drafts (VIMC-3467, reported by @sangeetabhatia03)
+
+# orderly 1.0.14
+
+* Functionality for creating dependency graphs for reports using orderly::orderly_graph (VIMC-2174)
+
+# orderly 1.0.13
+
+* The orderly CLI runner gets a `pull` sub command for pulling dependencies from remote orderly servers (VIMC-3466)
+
+# orderly 1.0.12
+
+* The orderly CLI runner gets an `--instance` argument (VIMC-3460)
+* The instance information is saved into the `orderly_run.rds`.  This is not yet reflected in the database and might be tweaked before being added.
+
+# orderly 1.0.11
+
+* More informative error messages when orderly fails to resolve an environment variable, particularly when loading remote configuration (VIMC-3386)
+
+# orderly 1.0.10
+
+* Fix regression running reports - vault autocompletes to vault_server
+
+# orderly 1.0.9
+
+* Enforce parameter types before model run, rather than on commit, and with better messages (VIMC-3411)
+
+# orderly 1.0.8
+
+* Expand how the vault server is defined to allow additional arguments to be directly specified (VIMC-3372)
+
+# orderly 1.0.7
+
+* More flexible control of use of draft reports, using the argument `use_draft` to `orderly_run` and `orderly_test_start`.  This will replace the use of explicitly specifying `draft: true` in the depends section of `orderly.yml` (VIMC-3377).
+
+# orderly 1.0.6
+
+* Database configurations now support the concept of "instances" to allow switching between different versions of a database (e.g., production and staging) without manually altering the configuration or environment variables. Functions `orderly::orderly_run`, `orderly::orderly_db`, `orderly::orderly_test_start` and `orderly::orderly_data` all get an `instance` argument to support this (VIMC-3302).
+
+# orderly 1.0.5
+
+* The metadata now includes the state of `.Random.seed`, if present (VIMC-3375)
+
 # orderly 1.0.3
 
-* `orderly::orderly_test_start` prints instructions that are pasteable on windows -- previously they may have contained backslashes (VIMC-3251).
+* `orderly::orderly_test_start` prints instructions that are paste-able on windows -- previously they may have contained backslashes (VIMC-3251).
 * `orderly::orderly_run` now strips a leading `src/` if provided, allowing easier tab-completion of report names (VIMC-3226).
 
 # orderly 1.0.2 (CRAN)

@@ -4,10 +4,22 @@
 \alias{orderly_run_remote}
 \title{Run a report on a remote server}
 \usage{
-orderly_run_remote(name, parameters = NULL, ref = NULL,
-  timeout = NULL, wait = 3600, poll = 1, open = TRUE,
-  stop_on_error = TRUE, stop_on_timeout = TRUE, progress = TRUE,
-  root = NULL, locate = TRUE, remote = NULL)
+orderly_run_remote(
+  name,
+  parameters = NULL,
+  ref = NULL,
+  timeout = NULL,
+  wait = 3600,
+  poll = 1,
+  open = TRUE,
+  stop_on_error = TRUE,
+  stop_on_timeout = TRUE,
+  progress = TRUE,
+  root = NULL,
+  locate = TRUE,
+  instance = NULL,
+  remote = NULL
+)
 }
 \arguments{
 \item{name}{Name of the report}
@@ -52,6 +64,11 @@ directory if \code{locate} is \code{TRUE}.}
 searched for.  If \code{TRUE} and \code{config} is not given,
 then orderly looks in the working directory and up through its
 parents until it finds an \code{orderly_config.yml} file.}
+
+\item{instance}{Select instance of the source database to be used,
+where multiple instances are configured. Use a single unnamed
+character string to indicate an instance to match. Will use
+default if NULL.}
 
 \item{remote}{Description of the location.  Typically this is a
 character string indicating a remote specified in the

@@ -26,17 +26,17 @@ read_lines <- function(...) {
   paste(readLines(...), collapse = "\n")
 }
 
-vcapply <- function(X, FUN, ...) {
+vcapply <- function(X, FUN, ...) { # nolint
   vapply(X, FUN, character(1), ...)
 }
 
 
-viapply <- function(X, FUN, ...) {
+viapply <- function(X, FUN, ...) { # nolint
   vapply(X, FUN, integer(1), ...)
 }
 
 
-vlapply <- function(X, FUN, ...) {
+vlapply <- function(X, FUN, ...) { # nolint
   vapply(X, FUN, logical(1), ...)
 }
 
@@ -78,7 +78,7 @@ orderly_file <- function(...) {
   system.file(..., package = "orderly", mustWork = TRUE)
 }
 
-`%||%` <- function(a, b) {
+`%||%` <- function(a, b) { # nolint
   if (is.null(a)) b else a
 }
 
@@ -102,7 +102,7 @@ is_within_dir <- function(files, path = getwd()) {
 }
 
 is_absolute_path <- function(path) {
-  grepl("^(/|[A-Z][a-z]:)", path)
+  grepl("^(/|[A-Za-z]:)", path)
 }
 
 is_relative_path <- function(path) {
@@ -118,7 +118,7 @@ sql_str_sub <- function(s, data) {
 }
 
 read_csv <- function(filename, ...) {
-  utils::read.csv(filename, stringsAsFactors = FALSE)
+  utils::read.csv(filename, ..., stringsAsFactors = FALSE)
 }
 
 write_csv <- function(data, filename, ...) {
@@ -194,15 +194,54 @@ pasteq <- function(x, sep = ", ") {
 }
 
 
+## This is primarily used in orderly_version: We want to run a block
+## of code and capture all the errors etc.  In a future version it
+## might be nice to think about a more generic "evaluate and tell me
+## about it" wrapper.  For now, I am bodging in a little stack trace
+## because it's useful, but this _generally_ would be a nice thing to
+## have within an "eval safely" helper (like in rrq) but it's not
+## totally obvious how that will fit in here.  Trimming the trace to
+## show just the important bits does not seem well done here either
+## and can't be until we sort out the logging more formally, because
+## there's no real concept of what the "action" here is, and because
+## multiple actions are logged.  An ideal case would do something to
+## indicate that it's in the "run" phase and display only the
+## traceback from the script itself - but other errors needed from
+## things like commit and prepare.
 capture_log <- function(expr, filename) {
-  con <- file(filename, "w")
+  mode <- if (file.exists(filename)) "a" else "w"
+  con <- file(filename, mode)
   sink(con, split = FALSE)
   on.exit({
     sink(NULL)
     close(con)
   })
-  handle_message <- function(e) cat(e$message, file = stdout())
-  suppressMessages(withCallingHandlers(force(expr), message = handle_message))
+  handle_message <- function(e) {
+    cat(crayon::strip_style(e$message), file = stdout())
+  }
+  handle_error <- function(e) {
+    calls <- sys.calls()
+    str <- utils::limitedLabels(calls[seq_len(length(calls) - 2L)])
+    lab <- format(seq_along(str))
+    str <- gsub("\n", sprintf("\n%s", strrep(" ", nchar(lab)[[1]] + 2)), str)
+    trace <- paste(sprintf("%s: %s\n", lab, str), collapse = "")
+    cat(sprintf("Error: %s\nTraceback:\n%s", e$message, trace),
+        file = stdout())
+  }
+
+  suppressMessages(withCallingHandlers(
+    force(expr),
+    message = handle_message,
+    error = handle_error))
+}
+
+
+conditional_capture_log <- function(capture, filename, expr) {
+  if (isTRUE(capture)) {
+    capture_log(expr, filename)
+  } else {
+    force(expr)
+  }
 }
 
 last <- function(x) {
@@ -243,11 +282,13 @@ append_text <- function(filename, txt) {
   writeLines(c(orig, txt), filename)
 }
 
-Sys_getenv <- function(x, error = TRUE, default = NULL) {
+sys_getenv <- function(x, used_in, error = TRUE, default = NULL) {
   v <- Sys.getenv(x, NA_character_)
-  if (is.na(v)) {
+  if (is.na(v) || !nzchar(v)) {
     if (error) {
-      stop(sprintf("Environment variable '%s' is not set", x))
+      reason <- if (!nzchar(v)) "empty" else "not set"
+      stop(sprintf("Environment variable '%s' is %s\n\t(used in %s)",
+                   x, reason, used_in), call. = FALSE)
     } else {
       v <- default
     }
@@ -318,19 +359,21 @@ indent <- function(x, n) {
   paste0(strrep(" ", n), strsplit(x, "\n", fixed = TRUE)[[1]])
 }
 
-resolve_driver_config <- function(args, config) {
-  resolve_secrets(resolve_env(args), config)
+resolve_driver_config <- function(args, config, name = NULL) {
+  resolve_secrets(resolve_env(args, name), config)
 }
 
-resolve_env <- function(x, error = TRUE, default = NULL) {
-  f <- function(x) {
+resolve_env <- function(x, used_in, error = TRUE, default = NULL) {
+  f <- function(nm, x) {
     if (length(x) == 1L && is.character(x) && grepl("^\\$[0-9A-Z_]+$", x)) {
-      Sys_getenv(substr(x, 2, nchar(x)), error = error, default = NULL)
+      sys_getenv(substr(x, 2, nchar(x)), sprintf("%s:%s", used_in, nm),
+                 error = error, default = NULL)
     } else {
       x
     }
   }
-  lapply(x, f)
+  assert_named(x)
+  Map(f, names(x), x)
 }
 
 is_windows <- function() {
@@ -400,10 +443,10 @@ sys_which <- function(name) {
 }
 
 zip_dir <- function(path, dest = paste0(basename(path), ".zip")) {
-  owd <- setwd(dirname(path))
-  on.exit(setwd(owd))
-  zip::zipr(dest, basename(path))
-  normalizePath(dest)
+  withr::with_dir(dirname(path), {
+    zip::zipr(dest, basename(path))
+    normalizePath(dest)
+  })
 }
 
 file_exists <- function(..., check_case = FALSE, workdir = NULL,
@@ -411,8 +454,8 @@ file_exists <- function(..., check_case = FALSE, workdir = NULL,
   files <- c(...)
   if (!is.null(workdir)) {
     assert_scalar_character(workdir)
-    owd <- setwd(workdir)
-    on.exit(setwd(owd))
+    owd <- setwd(workdir) # nolint
+    on.exit(setwd(owd)) # nolint
   }
   exists <- file.exists(files)
 
@@ -499,7 +542,7 @@ file_canonical_case <- function(filename) {
 }
 
 copy_directory <- function(src, as, rollback_on_error = FALSE) {
-  assert_is_directory(src)
+  assert_is_directory(src, FALSE)
   files <- dir(src, all.files = TRUE, no.. = TRUE, full.names = TRUE)
   if (rollback_on_error) {
     if (file.exists(as)) {
@@ -521,8 +564,7 @@ copy_directory <- function(src, as, rollback_on_error = FALSE) {
 ordered_map_to_list <- function(x) {
   ## This should not happen, but this is what would happen if we had
   ## a corrupted ordered map.  I think that the yaml parsers will
-  ## fix that for us though.  See similar faff in
-  ## recipe_read_check_artefacts.
+  ## fix that for us though.
   if (!all(lengths(x) == 1L)) {
     stop("Corrupt ordered map (this should never happen)")
   }
@@ -544,6 +586,11 @@ list_to_character <- function(x, named = TRUE) {
 
 list_to_integer <- function(x, named = TRUE) {
   viapply(x, identity, USE.NAMES = named)
+}
+
+
+list_to_logical <- function(x, named = TRUE) {
+  vlapply(x, identity, USE.NAMES = named)
 }
 
 
@@ -580,6 +627,15 @@ handle_missing_packages <- function(missing_packages, force = FALSE) {
     stop_missing_packages(missing_packages)
   }
 }
+
+
+check_missing_packages <- function(required) {
+  missing_packages <- setdiff(required, .packages(TRUE))
+  if (length(missing_packages) > 0) {
+    handle_missing_packages(missing_packages)
+  }
+}
+
 
 install_missing_packages <- function(missing_packages) {
   ## collapse vector to packages to string "c('pckg_1','pckg_2')"
@@ -649,29 +705,6 @@ sqlite_backup <- function(src, dest) {
 }
 
 
-periodic <- function(fun, period) {
-  fun <- match.fun(fun)
-  force(period)
-  env <- new.env(parent = emptyenv())
-  env$last <- Sys.time()
-  function() {
-    now <- Sys.time()
-    if (now > env$last + period) {
-      fun()
-      env$last <- now
-    }
-  }
-}
-
-
-protect <- function(fun) {
-  fun <- match.fun(fun)
-  function() {
-    tryCatch(fun(), error = function(e) NULL)
-  }
-}
-
-
 ## Does not exist in older R (< 3.3.0 I think)
 file_size <- function(path) {
   file.info(path, extra_cols = FALSE)$size
@@ -711,4 +744,176 @@ pretty_bytes <- function(bytes) {
 
 clean_path <- function(path) {
   gsub("\\", "/", path, fixed = TRUE)
+}
+
+
+random_seed <- function(envir = globalenv()) {
+  envir$.Random.seed
+}
+
+
+same_path <- function(a, b) {
+  normalizePath(a, "/", TRUE) == normalizePath(b, "/", TRUE)
+}
+
+
+## NOTE: this will not cope for things like a block string that runs
+## mutiple line in any child element.  So we cannot use this to edit
+## sections where that is possible.
+yaml_block_info <- function(name, text) {
+  ## TODO: Explicitly check for a null section - that could be
+  ## replaced in a 3rd option.
+  ##
+  ## TODO: Better behaviour for the key: value pair where value could
+  ## have been a list.
+  re <- sprintf("^%s\\s*:", name)
+  start <- grep(re, text)
+  if (length(start) == 0L) {
+    return(list(name = name, exists = FALSE, block = FALSE))
+  }
+
+  re <- sprintf("^%s\\s*:", name)
+  if (length(start) > 1L) {
+    stop("Failed to process yaml")
+  }
+
+  ## Find end of the block - that will be the next zero-indented line
+  ## or the EOF:
+  end <- grep("^[^#[:space:]]", text)
+  end <- c(end[end > start], length(text) + 1L)[[1L]] - 1L
+
+  if (start == end) {
+    return(list(name = name, exists = TRUE, block = FALSE,
+                start = start, end = start))
+  }
+
+  tmp <- text[start:end][-1L]
+  tmp <- tmp[!grepl("^\\s*(#.*)?$", tmp)][[1L]]
+  indent <- sub("[^[:space:]].*$", "", tmp)
+
+  list(name = name, exists = TRUE, block = TRUE,
+       start = start, end = end, indent = indent)
+}
+
+
+insert_into_file <- function(text, where, value, path, show, edit, prompt) {
+  x <- filediff(text, where, value)
+  if (length(x$changed) == 0L) {
+    message(sprintf("No changes to make to '%s'", path))
+    return(invisible(x))
+  }
+
+  if (show) {
+    message(sprintf("Changes to '%s'", path))
+    cat(format_filediff(x))
+  }
+
+  if (edit && prompt && !prompt_ask_yes_no("Write to file? ")) {
+    edit <- FALSE
+    message("Not modifying file")
+  }
+
+  if (edit) {
+    message(sprintf("Writing to '%s'", path))
+    writeLines(x$result, path)
+  }
+
+  invisible(x)
+}
+
+
+filediff <- function(text, where, value) {
+  if (is.null(text)) {
+    result <- value
+    changed <- seq_along(value)
+    create <- TRUE
+  } else {
+    i <- seq_len(where)
+    result <- c(text[i], value, text[-i])
+    changed <- seq_along(value) + where
+    create <- FALSE
+  }
+  ret <- list(text = text,
+              where = where,
+              value = value,
+              result = result,
+              changed = changed,
+              create = create)
+  class(ret) <- "filediff"
+  ret
+}
+
+
+format_filediff <- function(x, ..., context = 2L, colour = NULL) {
+  colour <- colour %||% crayon::has_color()
+  if (length(x$changed) == 0) {
+    return(character(0))
+  }
+  i <- seq_along(x$result)
+  focus <- range(x$changed)
+  i <- i[i >= focus[[1L]] - context & i <= focus[[2L]] + context]
+  line <- format(i)
+  text <- x$result[i]
+  changed <- i %in% x$changed
+  grey <- crayon::make_style("grey")
+  if (colour) {
+    line[changed] <- crayon::bold(grey(line[changed]))
+    text[changed] <- crayon::bold(text[changed])
+  } else {
+    line[changed] <- paste0("+ ", line[changed])
+    line[!changed] <- paste0("  ", line[!changed])
+  }
+  paste(sprintf("%s | %s\n", line, text), collapse = "")
+}
+
+
+sys_setenv <- function(env) {
+  if (length(env) > 0L) {
+    do.call("Sys.setenv", as.list(env))
+  }
+}
+
+
+orderly_style <- function(name) {
+  switch(name,
+         highlight = crayon::combine_styles(
+           crayon::bold, crayon::make_style("steelblue3")),
+         alert = crayon::combine_styles(
+           crayon::bold, crayon::make_style("hotpink")),
+         fade = crayon::make_style("grey"),
+         workflow = crayon::combine_styles(
+           crayon::bold, crayon::make_style("orange2")),
+         identity)
+}
+
+
+is_call <- function(expr, valid) {
+  is.recursive(expr) && as.character(expr[[1]]) %in% valid
+}
+
+
+deparse_str <- function(x) {
+  paste(deparse(x), collapse = "\n")
+}
+
+df2list <- function(df) {
+  unname(split(df, seq_len(nrow(df))))
+}
+
+
+lock_bindings <- function(syms, env) {
+  for (sym in syms) {
+    lockBinding(sym, env)
+  }
+  invisible(NULL)
+}
+
+clean_report_name <- function(name) {
+  if (grepl("^src[/\\].+", name)) {
+    name <- sub("^src[/\\]+", "", name)
+  }
+  if (grepl("[/\\]$", name)) {
+    name <- sub("[/\\]+$", "", name)
+  }
+  name
 }

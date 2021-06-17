@@ -14,13 +14,13 @@ test_that("empty", {
 })
 
 test_that("non-empty", {
-  path <- prepare_orderly_example("minimal")
+  path <- test_prepare_orderly_example("minimal")
   expect_equal(orderly_list(path), "example")
 })
 
 test_that("query through lifecycle", {
   skip_on_cran_windows()
-  path <- prepare_orderly_example("minimal")
+  path <- test_prepare_orderly_example("minimal")
   expect_equal(orderly_list(root = path), "example")
 
   empty <- data.frame(name = character(0), id = character(0),
@@ -68,6 +68,10 @@ test_that("query through lifecycle", {
 })
 
 test_that("latest_ids", {
+  ## There is a 1/6554 chance of collision here in the test where
+  ## generate 5 ids with the same leading component (down to the ms);
+  ## one collision seen now on travis (see 1 / pbirthday(5, 256^2))
+  skip_on_cran()
   skip_on_cran_windows()
   expect_equal(latest_id(character(0)), NA_character_)
 
@@ -89,17 +93,17 @@ test_that("latest_ids", {
   expect_identical(latest_id(sample(id_ms)), last(id_ms))
 
   ## Differ below the subsecond level
-  id_same <- replicate(5, new_report_id(t + 1))
-  expect_identical(latest_id(id_same), sort_c(id_same))
-  expect_identical(latest_id(sample(id_same)), sort_c(id_same))
+  id_same <- sort_c(replicate(5, new_report_id(t + 1)))
+  expect_identical(latest_id(id_same), last(id_same))
+  expect_identical(latest_id(sample(id_same)), last(id_same))
 
   id_both <- c(id_s, id_ms)
   expect_identical(latest_id(id_both), last(id_both))
   expect_identical(latest_id(sample(id_both)), last(id_both))
 
   id_all <- c(id_both, id_same)
-  expect_identical(latest_id(id_all), sort_c(id_same))
-  expect_identical(latest_id(sample(id_all)), sort_c(id_same))
+  expect_identical(latest_id(id_all), last(id_same))
+  expect_identical(latest_id(sample(id_all)), last(id_same))
 
   ## Unexpected inputs
   expect_error(latest_id(c(id, "other")),
@@ -108,7 +112,7 @@ test_that("latest_ids", {
 
 test_that("latest", {
   skip_on_cran_windows()
-  path <- prepare_orderly_example("minimal")
+  path <- test_prepare_orderly_example("minimal")
 
   expect_equal(orderly_latest("example", root = path, must_work = FALSE),
                NA_character_)
@@ -141,10 +145,21 @@ test_that("latest", {
   expect_equal(orderly_latest("example", root = path), id2)
 })
 
+test_that("latest works with draft always, never, newer", {
+  skip_on_cran_windows()
+  path <- test_prepare_orderly_example("minimal")
+  id1 <- orderly_run("example", root = path, echo = FALSE)
+  id2 <- orderly_run("example", root = path, echo = FALSE)
+  orderly_commit(id1, root = path)
+  expect_equal(orderly_latest("example", root = path, draft = "never"), id1)
+  expect_equal(orderly_latest("example", root = path, draft = "always"), id2)
+  expect_equal(orderly_latest("example", root = path, draft = "newer"), id2)
+})
+
 
 test_that("Behaviour with rogue files", {
   testthat::skip_on_cran()
-  path <- prepare_orderly_example("minimal")
+  path <- test_prepare_orderly_example("minimal")
   id1 <- orderly_run("example", root = path, echo = FALSE)
   id2 <- orderly_run("example", root = path, echo = FALSE)
   p1 <- orderly_commit(id1, root = path)
@@ -159,9 +174,28 @@ test_that("Behaviour with rogue files", {
 })
 
 
+test_that("orderly_latest does not find failed drafts", {
+  testthat::skip_on_cran()
+  path <- test_prepare_orderly_example("minimal")
+  id1 <- orderly_run("example", root = path, echo = FALSE)
+  id2 <- orderly_run("example", root = path, echo = FALSE)
+  file.remove(file.path(path, "draft", "example", id2, "orderly_run.rds"))
+
+  expect_setequal(
+    orderly_list_dir(file.path(path, "draft", "example")),
+    c(id1, id2))
+  expect_setequal(
+    orderly_list_dir(file.path(path, "draft", "example"), TRUE),
+    id1)
+
+  expect_equal(orderly_latest("example", draft = TRUE, root = path), id1)
+  expect_equal(orderly_list_drafts("example", root = path)$id, id1)
+})
+
+
 test_that("orderly_find_report", {
   skip_on_cran_windows()
-  path <- prepare_orderly_example("minimal")
+  path <- test_prepare_orderly_example("minimal")
   id1 <- orderly_run("example", root = path, echo = FALSE)
   id2 <- orderly_run("example", root = path, echo = FALSE)
 
@@ -181,5 +215,5 @@ test_that("orderly_find_report", {
   expect_error(
     orderly_find_report(new_report_id(), "example", config = path,
                         must_work = TRUE, draft = FALSE),
-    "Did not find archived report example:")
+    "Did not find archive report example:")
 })

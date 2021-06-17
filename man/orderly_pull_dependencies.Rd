@@ -3,16 +3,38 @@
 \name{orderly_pull_dependencies}
 \alias{orderly_pull_dependencies}
 \alias{orderly_pull_archive}
+\alias{orderly_push_archive}
 \title{Download dependent reports}
 \usage{
-orderly_pull_dependencies(name, root = NULL, locate = TRUE,
-  remote = NULL)
+orderly_pull_dependencies(
+  name = NULL,
+  root = NULL,
+  locate = TRUE,
+  remote = NULL,
+  parameters = NULL
+)
 
-orderly_pull_archive(name, id = "latest", root = NULL, locate = TRUE,
-  remote = NULL)
+orderly_pull_archive(
+  name,
+  id = "latest",
+  root = NULL,
+  locate = TRUE,
+  remote = NULL,
+  parameters = NULL
+)
+
+orderly_push_archive(
+  name,
+  id = "latest",
+  root = NULL,
+  locate = TRUE,
+  remote = NULL
+)
 }
 \arguments{
-\item{name}{Name of the report to download dependencies for}
+\item{name}{Name of the report to download dependencies for.
+Alternatively, the default of \code{NULL} is useful if you have
+already set the working directory to be the source directory.}
 
 \item{root}{The path to an orderly root directory, or \code{NULL}
 (the default) to search for one from the current working
@@ -31,6 +53,14 @@ using \code{\link{orderly_remote_path}}, or one provided by
 another package).  If left \code{NULL}, then the default remote
 for this orderly repository is used - by default that is the
 first listed remote.}
+
+\item{parameters}{Parameters to pass through when doing dependency
+resolution.  If you are using a query for \code{id} that
+involves a parameter (e.g., \code{latest(parameter:x == p)}) you
+will need to pass in the parameters here.  Similarly, if you are
+pulling a report that uses query dependencies that reference
+parameters you need to pass them here (the same parameter set
+will be passed through to all dependencies).}
 
 \item{id}{The identifier (for \code{orderly_pull_archive}).  The default is
 to use the latest report.}
@@ -67,6 +97,15 @@ included in the downloaded archive in order to collect all the
 information required for the database.  In this case, ask the
 administrator of the remote orderly archive to migrate their
 archive, and then re-pull.
+
+Pushing an archive is possible only if the remote supports it.
+Currently this is supported by \code{\link{orderly_remote_path}}
+remotes, though not by orderlyweb remotes.  There is no control
+over what will \emph{accept} a push at this point, nor any check
+that what you've pushed is "good" except that it exists in your
+archive.  As with pulling an archive, pushes are recursive with
+respect to dependencies.  The configuration interface here will
+likely change a little over time.
 }
 \examples{
 # Suppose we have a "remote" orderly repository at some path.

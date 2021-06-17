@@ -25,9 +25,20 @@
 ##' administrator of the remote orderly archive to migrate their
 ##' archive, and then re-pull.
 ##'
+##' Pushing an archive is possible only if the remote supports it.
+##' Currently this is supported by \code{\link{orderly_remote_path}}
+##' remotes, though not by orderlyweb remotes.  There is no control
+##' over what will \emph{accept} a push at this point, nor any check
+##' that what you've pushed is "good" except that it exists in your
+##' archive.  As with pulling an archive, pushes are recursive with
+##' respect to dependencies.  The configuration interface here will
+##' likely change a little over time.
+##'
 ##' @title Download dependent reports
 ##'
-##' @param name Name of the report to download dependencies for
+##' @param name Name of the report to download dependencies for.
+##'   Alternatively, the default of \code{NULL} is useful if you have
+##'   already set the working directory to be the source directory.
 ##'
 ##' @param remote Description of the location.  Typically this is a
 ##'   character string indicating a remote specified in the
@@ -37,6 +48,14 @@
 ##'   another package).  If left \code{NULL}, then the default remote
 ##'   for this orderly repository is used - by default that is the
 ##'   first listed remote.
+##'
+##' @param parameters Parameters to pass through when doing dependency
+##'   resolution.  If you are using a query for \code{id} that
+##'   involves a parameter (e.g., \code{latest(parameter:x == p)}) you
+##'   will need to pass in the parameters here.  Similarly, if you are
+##'   pulling a report that uses query dependencies that reference
+##'   parameters you need to pass them here (the same parameter set
+##'   will be passed through to all dependencies).
 ##'
 ##' @inheritParams orderly_list
 ##' @export
@@ -52,13 +71,13 @@
 ##'   remote system in more detail.
 ##'
 ##' @example man-roxygen/example-remote.R
-orderly_pull_dependencies <- function(name, root = NULL, locate = TRUE,
-                                      remote = NULL) {
-  config <- orderly_config_get(root, locate)
+orderly_pull_dependencies <- function(name = NULL, root = NULL, locate = TRUE,
+                                      remote = NULL, parameters = NULL) {
+  loc <- orderly_develop_location(name, root, locate)
+  name <- loc$name
+  config <- loc$config
   remote <- get_remote(remote, config)
-
-  path <- file.path(path_src(config$root), name)
-  depends <- recipe_read(path, config, FALSE)$depends
+  depends <- orderly_recipe$new(name, config)$depends
 
   msg <- sprintf("%s has %d %s", name, NROW(depends),
                  ngettext(NROW(depends), "dependency", "dependencies"))
@@ -68,7 +87,7 @@ orderly_pull_dependencies <- function(name, root = NULL, locate = TRUE,
     for (i in seq_len(nrow(depends))) {
       if (!isTRUE(depends$draft[[i]])) {
         orderly_pull_archive(depends$name[[i]], depends$id[[i]], config,
-                             FALSE, remote)
+                             FALSE, remote, parameters)
       }
     }
   }
@@ -81,27 +100,48 @@ orderly_pull_dependencies <- function(name, root = NULL, locate = TRUE,
 ##' @param id The identifier (for \code{orderly_pull_archive}).  The default is
 ##'   to use the latest report.
 orderly_pull_archive <- function(name, id = "latest", root = NULL,
-                                 locate = TRUE, remote = NULL) {
-  config <- orderly_config_get(root, locate)
+                                 locate = TRUE, remote = NULL,
+                                 parameters = NULL) {
+  loc <- orderly_develop_location(name, root, locate)
+  name <- loc$name
+  config <- loc$config
   config <- check_orderly_archive_version(config)
+
   remote <- get_remote(remote, config)
 
   v <- remote_report_versions(name, config, FALSE, remote)
   if (length(v) == 0L) {
-    stop("Unknown report")
+    stop(sprintf("No versions of '%s' were found at '%s'",
+                 name, remote_name(remote)), call. = FALSE)
   }
 
   if (id == "latest") {
     id <- latest_id(v)
-  }
-
-  if (!(id %in% v)) {
-    ## Confirm that the report does actually exist, working around
-    ## VIMC-1281:
-    stop(sprintf(
-      "Version '%s' not found at '%s': valid versions are:\n%s",
-      id, remote_name(remote), paste(sprintf("  - %s", v), collapse = "\n")),
-      call. = FALSE)
+  } else if (id_is_query(id)) {
+    query <- id
+    id <-
+      orderly_search(id, name, parameters, root = root, remote = remote)
+    if (is.na(id)) {
+      msg <- c(
+        sprintf("Failed to find suitable version of '%s' with query:", name),
+        sprintf("  '%s'", query),
+        "and parameters",
+        sprintf("  - %s: %s", names(parameters),
+                vcapply(parameters, as.character)))
+      stop(paste(msg, collapse = "\n"), call. = FALSE)
+    }
+  } else {
+    ## We've been given a direct id so we just need to check that it
+    ## exists
+    if (!(id %in% v)) {
+      ## Confirm that the report does actually exist, working around
+      ## VIMC-1281:
+      stop(sprintf(
+        "Version '%s' of '%s' not found at '%s': valid versions are:\n%s",
+        id, name, remote_name(remote),
+        paste(sprintf("  - %s", v), collapse = "\n")),
+        call. = FALSE)
+    }
   }
 
   dest <- file.path(path_archive(config$root), name, id)
@@ -112,7 +152,7 @@ orderly_pull_archive <- function(name, id = "latest", root = NULL,
     orderly_log("pull", label)
     path <- remote$pull(name, id)
 
-    ## There's an assumption here that the depenency resolution here
+    ## There's an assumption here that the dependency resolution here
     ## will not be badly affected by migrations.  If a migration
     ## changes how d$meta$depends is structured (if d$meta$depends
     ## stops being a data.frame that includes name and id as
@@ -128,6 +168,33 @@ orderly_pull_archive <- function(name, id = "latest", root = NULL,
       copy_directory(path, dest)
       report_db_import(name, id, config)
     }, error = function(e) unlink(dest, recursive = TRUE))
+  }
+}
+
+
+##' @rdname orderly_pull_dependencies
+##' @export
+orderly_push_archive <- function(name, id = "latest", root = NULL,
+                                 locate = TRUE, remote = NULL) {
+  config <- orderly_config(root, locate)
+  config <- check_orderly_archive_version(config)
+  remote <- get_remote(remote, config)
+  if (!is.function(remote$push)) {
+    stop("'push' is not supported by this remote")
+  }
+
+  if (id == "latest") {
+    id <- orderly_latest(name, config, FALSE)
+  }
+
+  v <- remote_report_versions(name, config, FALSE, remote)
+  if (id %in% v) {
+    orderly_log("push", sprintf("%s:%s already exists, skipping", name, id))
+  } else {
+    orderly_log("push", sprintf("%s:%s", name, id))
+    path <- file.path(config$root, "archive", name, id)
+    orderly_push_resolve_dependencies(path, remote, config)
+    remote$push(path)
   }
 }
 
@@ -171,6 +238,11 @@ orderly_pull_archive <- function(name, id = "latest", root = NULL,
 ##'   used.  This cannot be used if the remote has \code{master_only}
 ##'   set.
 ##'
+##' @param instance Select instance of the source database to be used,
+##'   where multiple instances are configured. Use a single unnamed
+##'   character string to indicate an instance to match. Will use
+##'   default if NULL.
+##'
 ##' @inheritParams orderly_pull_dependencies
 ##'
 ##' @export
@@ -187,12 +259,19 @@ orderly_run_remote <- function(name, parameters = NULL, ref = NULL,
                                open = TRUE, stop_on_error = TRUE,
                                stop_on_timeout = TRUE,
                                progress = TRUE,
-                               root = NULL, locate = TRUE, remote = NULL) {
-  remote <- get_remote(remote, orderly_config_get(root, locate))
-  remote$run(name, parameters = parameters, ref = ref,
-             timeout = timeout, wait = wait, poll = poll, progress = progress,
-             stop_on_error = stop_on_error, stop_on_timeout = stop_on_timeout,
-             open = open)
+                               root = NULL, locate = TRUE, instance = NULL,
+                               remote = NULL) {
+  cfg <- orderly_config(root, locate)
+  if (!is.null(ref)) {
+    ref <- gert::git_commit_id(ref, cfg$root)
+  }
+  remote <- get_remote(remote, cfg)
+  invisible(remote$run(
+    name, parameters = parameters, ref = ref,
+    timeout = timeout, wait = wait, poll = poll,
+    progress = progress, open = open, instance = instance,
+    stop_on_error = stop_on_error,
+    stop_on_timeout = stop_on_timeout))
 }
 
 
@@ -244,7 +323,7 @@ orderly_run_remote <- function(name, parameters = NULL, ref = NULL,
 ##' # Note that this has not affected the other orderly:
 ##' try(orderly::orderly_default_remote_get(root = path_remote))
 orderly_default_remote_set <- function(value, root = NULL, locate = TRUE) {
-  config <- orderly_config_get(root, locate)
+  config <- orderly_config(root, locate)
 
   if (is.null(value)) {
     remote <- NULL
@@ -260,7 +339,7 @@ orderly_default_remote_set <- function(value, root = NULL, locate = TRUE) {
 ##' @rdname orderly_default_remote
 ##' @export
 orderly_default_remote_get <- function(root = NULL, locate = TRUE) {
-  config <- orderly_config_get(root, locate)
+  config <- orderly_config(root, locate)
   if (!is.null(cache$default_remote[[config$root]])) {
     return(cache$default_remote[[config$root]])
   }
@@ -270,6 +349,34 @@ orderly_default_remote_get <- function(root = NULL, locate = TRUE) {
   msg <- paste("default remote has not been set yet:",
                "use 'orderly::orderly_default_remote_set'")
   stop(msg)
+}
+
+
+##' Get a remote, based on the configuration in
+##' \code{orderly_config.yml} - different remote drivers have
+##' different methods, and this function gives you access to these
+##' lower-level objects.
+##'
+##' @title Get a remote
+##'
+##' @inheritParams orderly_pull_dependencies
+##'
+##' @return The orderly remote, as described in
+##'   \code{orderly_config.yml} - if no remotes are configured, or if
+##'   the requested remote does not exist, an error will be thrown.
+##'
+##' @seealso \code{\link{orderly_pull_dependencies}} which provides a
+##'   higher-level interface to pulling from a remote (including
+##'   adding the downloaded archive into your orderly repository), and
+##'   see the documentation underlying the orderly remote driver that
+##'   your \code{orderly_config.yml} declares for information about
+##'   using that remote.
+##'
+##' @export
+##' @example man-roxygen/example-orderly-remote.R
+orderly_remote <- function(remote = NULL, root = NULL, locate = TRUE) {
+  config <- orderly_config(root, locate)
+  get_remote(remote, config)
 }
 
 
@@ -300,31 +407,55 @@ get_remote <- function(remote, config) {
 load_remote <- function(name, config) {
   remote <- config$remote[[name]]
   hash <- hash_object(remote)
-  if (is.null(cache$remotes[[hash]])) {
-    driver <- getExportedValue(remote$driver[[1L]], remote$driver[[2L]])
-    args <- resolve_secrets(remote$args, config)
-    cache$remotes[[hash]] <- do.call(driver, args)
+
+  cached <- cache$remotes[[hash]]
+  if (!is.null(cached)) {
+    return(cached)
   }
-  cache$remotes[[hash]]
+
+  driver <- getExportedValue(remote$driver[[1L]], remote$driver[[2L]])
+  base <- "orderly_config.yml:remote"
+
+  where <- sprintf("%s:%s:args", base, name)
+  args <- resolve_secrets(resolve_env(remote$args, where), config)
+  value <- do.call(driver, args)
+
+  ## TODO(VIMC-3544): put this in an 'data' or equivalent argument
+  ## to the constructor, but that required fixing both drivers.
+  attr(value, "slack_url") <-
+    resolve_env(remote["slack_url"], error = FALSE)$slack_url
+  attr(value, "teams_url") <-
+    resolve_env(remote["teams_url"], error = FALSE)$teams_url
+  attr(value, "primary") <- isTRUE(remote$primary)
+
+  cache$remotes[[hash]] <- value
+
+  value
+}
+
+
+## For debugging
+clear_remote_cache <- function() {
+  cache$remotes <- list()
 }
 
 
 ## Most of these functions can really shrink now?
 remote_report_names <- function(root = NULL, locate = TRUE, remote = NULL) {
-  remote <- get_remote(remote, orderly_config_get(root, locate))
+  remote <- get_remote(remote, orderly_config(root, locate))
   remote$list_reports()
 }
 
 
 remote_report_versions <- function(name, config = NULL, locate = TRUE,
                                    remote = NULL) {
-  remote <- get_remote(remote, orderly_config_get(config, locate))
+  remote <- get_remote(remote, orderly_config(config, locate))
   remote$list_versions(name)
 }
 
 
 remote_name <- function(remote) {
-  remote$name
+  remote$name %||% "(unknown)"
 }
 
 
@@ -352,4 +483,120 @@ orderly_pull_resolve_dependencies <- function(path, remote, config) {
                            locate = FALSE, remote = remote)
     }
   }
+}
+
+
+orderly_push_resolve_dependencies <- function(path, remote, config) {
+  d <- readRDS(path_orderly_run_rds(path))
+  depends <- d$meta$depends
+  if (NROW(depends) > 0L) { # NROW(x) is 0 for x = NULL
+    depends <- depends[!duplicated(depends$id), c("name", "id"), drop = FALSE]
+    orderly_log("depends",
+                paste(sprintf("%s/%s", depends$name, depends$id),
+                      collapse = ", "))
+    for (i in seq_len(nrow(depends))) {
+      orderly_push_archive(depends$name[[i]], depends$id[[i]], root = config,
+                           locate = FALSE, remote = remote)
+    }
+  }
+}
+
+
+## Where will this really be used?  I have it just in query_search at
+## the moment, and it is written just to support that, but are there
+## other times where we want this?  Probably working with dependency
+## graphs too.
+remote_report_update_metadata <- function(name, remote, config) {
+  ids <- remote$list_versions(name)
+  path_cache <- file.path(path_remote_cache(config$root), name)
+  dir.create(path_cache, FALSE, TRUE)
+  msg <- setdiff(ids, dir(path_cache))
+  for (i in msg) {
+    file_copy(remote$metadata(name, i), file.path(path_cache, i))
+  }
+  data_frame(id = ids, path = file.path(path_cache, ids))
+}
+
+
+##' Pack a bundle on a remote. This is like calling
+##' \code{\link{orderly_bundle_pack}} on the remote and can be used to
+##' extract a long-running report from a server to run (say) on an HPC
+##' system.
+##'
+##' The workflow here will typically be:
+##'
+##' 1. Use \code{orderly_bundle_pack_remote()} to create a local
+##'    copy of a bundle, extracted from a remote. Typically this will
+##'    be run from the system where the bundle will be run (an HPC
+##'    head-node or another powerful computer).
+##'
+##' 2. Run the bundle using \code{\link{orderly_bundle_run}}
+##'
+##' 3. Re-import the completed bundle using
+##'   \code{orderly_bundle_import_remote} which sends the zip
+##'   file to the remote and adds it to the archive.
+##'
+##' Typically these commands will \emph{not} be run from the orderly
+##' root. However, the \code{root} argument may still be used to find
+##' your remote configuration. Alternatively, if your \code{remote}
+##' argument is an orderly remote (e.g.,
+##' \code{\link{orderly_remote_path}}, or \code{orderlyweb}'s
+##' \code{orderlyweb::orderlyweb_remote}) then the \code{root} and
+##' \code{locate} arguments will be ignored and this command can be
+##' run from anywhere. This is the recommended configuration for
+##' running on a HPC system.
+##'
+##' @title Pack and import bundles with remotes
+##'
+##' @inheritParams orderly_bundle_pack
+##'
+##' @param remote The remote to pack the bundle from, or import into
+##'
+##' @param dest Optional path to write bundle to (a directory
+##'   name). By default we use the temporary directory and return the
+##'   full path to the created file.
+##'
+##' @export
+orderly_bundle_pack_remote <- function(name, parameters = NULL,
+                                       instance = NULL,
+                                       root = NULL, locate = TRUE,
+                                       remote = NULL, dest = tempdir()) {
+  remote <- get_remote(remote, orderly_config(root, locate))
+  dir_create(dest)
+  path <- remote$bundle_pack(name, parameters = parameters,
+                             instance = instance)
+  if (dest != tempdir()) {
+    fs::file_move(path, dest)
+    path <- file.path(dest, basename(path))
+  }
+
+  path
+}
+
+
+##' @rdname orderly_bundle_pack_remote
+##'
+##' @param path The path to unpack and import
+##'   (a zip file created by \code{orderly_bundle_run})
+##'
+##' @export
+orderly_bundle_import_remote <- function(path, root = NULL, locate = TRUE,
+                                         remote = NULL) {
+  remote <- get_remote(remote, orderly_config(root, locate))
+  remote$bundle_import(path)
+}
+
+##' Get status of remote queue.
+##'
+##' Get the status of the remote queue as a list.
+##'
+##' @inheritParams orderly_pull_dependencies
+##'
+##' @return List containing details of running and queued reports on the
+##' remote queue. Including report name, status and version (where known)
+##'
+##' @export
+orderly_remote_status <- function(root = NULL, locate = TRUE, remote = NULL) {
+  remote <- get_remote(remote, orderly_config(root, locate))
+  remote$queue_status()
 }

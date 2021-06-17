@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>orderly bundles</title>
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+
+<style type="text/css">
+  code {
+    white-space: pre;
+  }
+  .sourceCode {
+    overflow: visible;
+  }
+</style>
+<style type="text/css" data-origin="pandoc">
+a.sourceLine { display: inline-block; line-height: 1.25; }
+a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
+a.sourceLine:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; position: relative; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+code.sourceCode { white-space: pre-wrap; }
+a.sourceLine { text-indent: -1em; padding-left: 1em; }
+}
+pre.numberSource a.sourceLine
+  { position: relative; left: -4em; }
+pre.numberSource a.sourceLine::before
+  { content: attr(title);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; pointer-events: all; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {  }
+@media screen {
+a.sourceLine::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">orderly bundles</h1>
+
+
+
+<p>If you have an orderly report that takes a very long time, or needs to run in parallel, you might need to send it to run on another computer. There are a number of ways of achieving this - the simplest might be to clone the source tree to another computer, run the reports there and use one of <a href="patterns.html">a number of possible approaches to sync the outputs between computers</a>. However, there will be cases where that is not ideal, and you want to move around much less data around.</p>
+<p>This vignette describes a way of parcelling together all dependencies of an orderly report into a zip file (a “<strong>bundle</strong>”) that can be distributed to another machine (e.g., via scp, rsync or a shared file system), run there, and returned. It does not provide a transparent approach to using high-performance computing with orderly as we feel that the specific circumstances are too varied to support this directly.</p>
+<div id="overview" class="section level2">
+<h2>Overview</h2>
+<p>In order to use orderly bundles we make some assumptions and conventions.</p>
+<p>First, we assume that you will be running your exported report on another machine (otherwise you would have access to the orderly tree) and that your report takes really quite a long time.</p>
+<p>Second, we assume you have your own way of getting the bundled reports <em>to</em> your other machine and the completed bundles back again — we expect that the details here will be specific to your needs and situation and that the overhead of doing this will be trivial compared with the cost of running the report.</p>
+<p>Third, we assume that you will deal with all issues around queuing, locking and fault tolerance. From orderly’s point of view work will be exported from orderly and at this point you’re in control - we expect it to come back computed at some point, though we do not enforce that.</p>
+<p>Fourth, that the machine running the report can be trusted to <em>actually run the report</em> - if you have set up an orderly server that is safe from interactively run reports, don’t allow importing from anyone’s laptops if you want to preserve this.</p>
+<p>Fifth, that you trust your remote machine with your data, and that the remote machine trusts your orderly archive enough to run arbitrary code on it.</p>
+</div>
+<div id="the-process" class="section level2">
+<h2>The process</h2>
+<p>We will use the orderly demo example, and pack up the <code>use_dependency</code> report.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" title="1">path &lt;-<span class="st"> </span>orderly<span class="op">::</span><span class="kw">orderly_example</span>(<span class="st">&quot;demo&quot;</span>)</a></code></pre></div>
+<p>The <code>use_dependency</code> report has a dependency, which we run</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" title="1">id &lt;-<span class="st"> </span>orderly<span class="op">::</span><span class="kw">orderly_run</span>(<span class="st">&quot;other&quot;</span>, <span class="dt">parameters =</span> <span class="kw">list</span>(<span class="dt">nmin =</span> <span class="dv">0</span>),</a>
+<a class="sourceLine" id="cb2-2" title="2">                           <span class="dt">echo =</span> <span class="ot">FALSE</span>, <span class="dt">root =</span> path)</a></code></pre></div>
+<pre><code>## [ name       ]  other</code></pre>
+<pre><code>## [ id         ]  20210617-165840-f1a93526</code></pre>
+<pre><code>## [ sources    ]  functions.R</code></pre>
+<pre><code>## [ parameter  ]  nmin: 0</code></pre>
+<pre><code>## [ start      ]  2021-06-17 16:58:40</code></pre>
+<pre><code>## [ data       ]  source =&gt; extract: 20 x 2</code></pre>
+<pre><code>## [ parameter  ]  nmin: 0</code></pre>
+<pre><code>## [ end        ]  2021-06-17 16:58:40</code></pre>
+<pre><code>## [ elapsed    ]  Ran report in 0.04179978 secs</code></pre>
+<pre><code>## [ artefact   ]  summary.csv: 3fac8347e152c84c96e6676413c718b7
+## [ ...        ]  graph.png: 1adf6a0f2e70dd8c25d3d8ba702d299e</code></pre>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb13-1" title="1">orderly<span class="op">::</span><span class="kw">orderly_commit</span>(id, <span class="dt">root =</span> path)</a></code></pre></div>
+<pre><code>## [ commit     ]  other/20210617-165840-f1a93526</code></pre>
+<pre><code>## [ copy       ]</code></pre>
+<pre><code>## [ import     ]  other:20210617-165840-f1a93526</code></pre>
+<pre><code>## [ success    ]  :)</code></pre>
+<pre><code>## [1] &quot;/tmp/RtmppRdXoQ/file11aaaaafd897/archive/other/20210617-165840-f1a93526&quot;</code></pre>
+<p>We need a place that we’ll put the bundles:</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb19-1" title="1">path_bundles &lt;-<span class="st"> </span><span class="kw">tempfile</span>()</a></code></pre></div>
+<p>Now, we can pack up <code>use_dependency</code> to run</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb20-1" title="1">bundle &lt;-<span class="st"> </span>orderly<span class="op">::</span><span class="kw">orderly_bundle_pack</span>(path_bundles, <span class="st">&quot;use_dependency&quot;</span>,</a>
+<a class="sourceLine" id="cb20-2" title="2">                                       <span class="dt">root =</span> path)</a></code></pre></div>
+<pre><code>## [ name       ]  use_dependency</code></pre>
+<pre><code>## [ id         ]  20210617-165841-2d8f07a8</code></pre>
+<pre><code>## [ depends    ]  other@20210617-165840-f1a93526:summary.csv -&gt; incoming.csv</code></pre>
+<pre><code>## [ start      ]  2021-06-17 16:58:41</code></pre>
+<pre><code>## [ bundle pack ]  20210617-165841-2d8f07a8</code></pre>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb26-1" title="1">bundle</a></code></pre></div>
+<pre><code>## $id
+## [1] &quot;20210617-165841-2d8f07a8&quot;
+## 
+## $path
+## [1] &quot;/tmp/RtmppRdXoQ/file11aaa1e6d4827/20210617-165841-2d8f07a8.zip&quot;</code></pre>
+<p><code>orderly_bundle_pack</code> has created a zip file. The format of this file is internal to orderly (it will likely change and will at some point become resistant to tampering), but contains:</p>
+<div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb28-1" title="1">zip<span class="op">::</span><span class="kw">zip_list</span>(bundle<span class="op">$</span>path)</a></code></pre></div>
+<pre><code>##                                      filename compressed_size uncompressed_size
+## 1                   20210617-165841-2d8f07a8/               0                 0
+## 2              20210617-165841-2d8f07a8/meta/               0                 0
+## 3    20210617-165841-2d8f07a8/meta/config.rds            1458              1453
+## 4      20210617-165841-2d8f07a8/meta/info.rds            3419              3414
+## 5  20210617-165841-2d8f07a8/meta/manifest.rds             284               279
+## 6   20210617-165841-2d8f07a8/meta/session.rds           21923             21918
+## 7              20210617-165841-2d8f07a8/pack/               0                 0
+## 8  20210617-165841-2d8f07a8/pack/incoming.csv             542               888
+## 9   20210617-165841-2d8f07a8/pack/orderly.yml             214               358
+## 10     20210617-165841-2d8f07a8/pack/script.R             175               220
+##              timestamp permissions    crc32 offset
+## 1  2021-06-17 15:58:40         755 00000000      0
+## 2  2021-06-17 15:58:40         755 00000000     55
+## 3  2021-06-17 15:58:40         644 ca913ede    115
+## 4  2021-06-17 15:58:40         644 147e3424   1659
+## 5  2021-06-17 15:58:40         644 692ad244   5162
+## 6  2021-06-17 15:58:40         644 830eacc4   5534
+## 7  2021-06-17 15:58:40         755 00000000  27544
+## 8  2021-06-17 15:58:40         644 e3c70810  27604
+## 9  2021-06-17 15:58:40         644 93fda3f3  28234
+## 10 2021-06-17 15:58:40         644 58329b6b  28535</code></pre>
+<p>The subdirectory <code>pack</code> contains the report working directory, all code and dependencies, etc, while <code>meta</code> contains additional information required to run the report. In particular the <code>incoming.csv</code> file in the <code>pack</code> directory contains the dependency imported from <code>other</code>.</p>
+<p>Then copy this zip file somewhere else to run it (details vary based on your system, and moving the file is not <em>necessary</em> to run it, though it will be the most likely situation).</p>
+<p>Once the files have been moved we can run it with:</p>
+<div class="sourceCode" id="cb30"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb30-1" title="1">workdir &lt;-<span class="st"> </span><span class="kw">tempfile</span>()</a>
+<a class="sourceLine" id="cb30-2" title="2">res &lt;-<span class="st"> </span>orderly<span class="op">::</span><span class="kw">orderly_bundle_run</span>(bundle<span class="op">$</span>path, workdir)</a></code></pre></div>
+<pre><code>## [ start      ]  2021-06-17 16:58:41</code></pre>
+<pre><code>## 
+## &gt; d &lt;- read.csv(&quot;incoming.csv&quot;, stringsAsFactors = FALSE)
+## 
+## &gt; png(&quot;graph.png&quot;)
+## 
+## &gt; par(mar = c(15, 4, 0.5, 0.5))
+## 
+## &gt; barplot(setNames(d$number, d$name), las = 2)</code></pre>
+<pre><code>## 
+## &gt; dev.off()
+## png 
+##   2 
+## 
+## &gt; info &lt;- orderly::orderly_run_info()
+## 
+## &gt; saveRDS(info, &quot;info.rds&quot;)</code></pre>
+<pre><code>## [ end        ]  2021-06-17 16:58:41</code></pre>
+<pre><code>## [ elapsed    ]  Ran report in 0.008886099 secs</code></pre>
+<pre><code>## [ artefact   ]  graph.png: 1adf6a0f2e70dd8c25d3d8ba702d299e
+## [ ...        ]  info.rds: 52bd845108bafb9d0cdb343a806a7536</code></pre>
+<p>With the <code>workdir</code> being a directory that you want the report to be run in. This can be the same as the path the incoming zip file is found, if you want, but this will make it harder to know what has been run already or not.</p>
+<p>This creates <em>another</em> zip file, but this time contains the results of running the report.</p>
+<p>The result can be imported into order by using <code>orderly::orderly_bundle_import</code> with the path to the zip file:</p>
+<div class="sourceCode" id="cb37"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb37-1" title="1">orderly<span class="op">::</span><span class="kw">orderly_bundle_import</span>(res<span class="op">$</span>path, <span class="dt">root =</span> path)</a></code></pre></div>
+<pre><code>## [ import     ]  use_dependency:20210617-165841-2d8f07a8</code></pre>
+<p>The copy of <code>use_dependency</code> is now in the archive and can be used like any other orderly report</p>
+<div class="sourceCode" id="cb39"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb39-1" title="1">orderly<span class="op">::</span><span class="kw">orderly_list_archive</span>(path)</a></code></pre></div>
+<pre><code>##             name                       id
+## 1          other 20210617-165840-f1a93526
+## 2 use_dependency 20210617-165841-2d8f07a8</code></pre>
+<div class="sourceCode" id="cb41"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb41-1" title="1">orderly<span class="op">::</span><span class="kw">orderly_graph</span>(<span class="st">&quot;other&quot;</span>, <span class="dt">root =</span> path)</a></code></pre></div>
+<pre><code>## other [20210617-165840-f1a93526]
+## └──use_dependency [20210617-165841-2d8f07a8]</code></pre>
+</div>
+<div id="limitations" class="section level2">
+<h2>Limitations</h2>
+<ul>
+<li><p>We do not yet verify that the incoming bundle comes from a trusted source, nor that the completed bundle was run on a trusted system, nor that the bundle pack was not modified en route. We will add a signing and verifying step in future that will address these issues.</p></li>
+<li><p>We do not support encryption of the bundle, but may do so in a future version.</p></li>
+<li><p>Secrets will be copied in clear text if included.</p></li>
+<li><p>We do not check that the package versions on the remote machine are suitable, though metadata is included to support this in future.</p></li>
+<li><p>We do not support reading from databases using the <code>connection:</code> field while the report is running (reading data <em>before</em> is fine). In future we may relax this so that the remote report interacts with the database. Practically this means that bundled reports cannot use the <code>connection:</code> field, and all data will be packaged into the bundle, and so may be large.</p></li>
+<li><p>As discussed above in <a href="#overview">the overview section</a>, orderly does not deal with the movement of bundles between machines, nor queuing of these bundles.</p></li>
+</ul>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

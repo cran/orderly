@@ -3,9 +3,10 @@
 
 <!-- badges: start -->
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
-[![Build Status](https://travis-ci.org/vimc/orderly.svg?branch=master)](https://travis-ci.org/vimc/orderly)
-[![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/vimc/orderly?branch=master&svg=true)](https://ci.appveyor.com/project/richfitz/orderly)
+[![R build status](https://github.com/vimc/orderly/workflows/R-CMD-check/badge.svg)](https://github.com/vimc/orderly/actions)
+[![Build status](https://badge.buildkite.com/bc7993cd6960b205b32bd20f92d0d707c128e1a14bdb580f73.svg)](https://buildkite.com/mrc-ide/orderly)
 [![codecov.io](https://codecov.io/github/vimc/orderly/coverage.svg?branch=master)](https://codecov.io/github/vimc/orderly?branch=master)
+[![CodeFactor](https://www.codefactor.io/repository/github/vimc/orderly/badge)](https://www.codefactor.io/repository/github/vimc/orderly)
 [![](https://www.r-pkg.org/badges/version/orderly)](https://cran.r-project.org/package=orderly)
 <!-- badges: end -->
 
@@ -76,24 +77,31 @@ Then if one of the dependencies of a report changes (the used data, code, etc), 
 
 ## Workflows with `orderly`
 
-In the [MRC Centre for Global Infectious Disease Analysis](https://www.imperial.ac.uk/mrc-global-infectious-disease-analysis) we use `orderly` on two major projects:
+In the [MRC Centre for Global Infectious Disease Analysis](https://www.imperial.ac.uk/mrc-global-infectious-disease-analysis) we use `orderly` on three major projects:
 
 - The [Vaccine Impact Modelling Consortium](https://www.vaccineimpact.org/)
-- Our part of the response to the 2018-2019 Ebola outbreak in the Democratic Republic of Congo
+- Our part of the response to the 2018-2020 Ebola outbreak in the Democratic Republic of Congo
+- [Our part](https://www.imperial.ac.uk/mrc-global-infectious-disease-analysis/covid-19/) of the response to the 2019-2020 2019-nCoV-SARS/COVID-19 pandemic
 
 The workflows we have developed here are oriented towards collaborative groups of researchers - other workflows are possible (indeed `orderly` is also designed to support a _decentralised_ workflow, though this has not been used in practice yet).
 
 In these projects we have a group of researchers who develop and test analyses locally.  These are developed on a [branch in git](https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging) and then run on a centralised _staging environment_ (a duplicate of our production environment).  The code and outputs are reviewed with the help of [GitHub's "Pull requests"](https://help.github.com/en/articles/about-pull-requests) and then the reports are run on our production environment.
 
-Interaction with the remote environments is achieved using an [HTTP API](https://github.com/vimc/montagu-reporting-api) which `orderly` itself transparently uses, so that reports can be run remotely, [directly from R](https://vimc.github.io/orderly/reference/orderly_run_remote.html).  The remote systems also include an interactive web interface that can be used to explore and download versions of analyses, as well as run new ones.
+Interaction with the remote environments is achieved using an [HTTP API](https://github.com/vimc/montagu-reporting-api) which `orderly` itself transparently uses, so that reports can be run remotely, [directly from R](https://www.vaccineimpact.org/orderly/reference/orderly_run_remote.html).  The remote systems also include an interactive web interface that can be used to explore and download versions of analyses, as well as run new ones.
 
 ## Internal database schema
 
-`orderly` has a database, which should be the preferred way of querying the report archive from other programs.  The schema is programmatically described at [`inst/database/schema.yml`](inst/database/schema.yml) and automatically generated database documentation is available [here](https://vimc.github.io/orderly/schema).
+`orderly` has a database, which should be the preferred way of querying the report archive from other programs.  The schema is programmatically described at [`inst/database/schema.yml`](inst/database/schema.yml) and automatically generated database documentation is available [here](https://www.vaccineimpact.org/orderly/schema/).
 
 ## Testing
 
 There is a set of regression tests that require the reference data.  Enable these by running the script `./scripts/copy_reference` which creates data in `tests/testthat/reference`
+
+## RStudio addins
+
+There are [addins](https://github.com/vimc/orderly.rstudio) available to help with development workflows.
+
+See docs at [orderly.rstudio](https://github.com/vimc/orderly.rstudio#setup) for setup and usage instructions.
 
 ## Installation
 

@@ -1,16 +1,27 @@
 context("globals")
 
 test_that("global", {
-  path <- prepare_orderly_example("global", testing = TRUE)
-  tmp <- tempfile()
+  path <- test_prepare_orderly_example("global", testing = TRUE)
   expect_error(
-    orderly_run("example", root = path, id_file = tmp, echo = FALSE),
+    orderly_run("example", root = path, echo = FALSE),
     NA # expect no errors
   )
 })
 
+
+test_that("can't use globals where not supported ", {
+  path <- test_prepare_orderly_example("minimal")
+  append_lines(
+    c("global_resources:", "  file.txt: file.txt"),
+    file.path(path, "src", "example", "orderly.yml"))
+  expect_error(
+    orderly_run("example", root = path, echo = FALSE),
+    "'global_resources' is not supported")
+})
+
+
 test_that("missing global file", {
-  path <- prepare_orderly_example("global", testing = TRUE)
+  path <- test_prepare_orderly_example("global", testing = TRUE)
   # now we break the report yaml
   path_example <- file.path(path, "src", "example")
   path_yaml <- file.path(path_example, "orderly.yml")
@@ -18,21 +29,19 @@ test_that("missing global file", {
   config_lines <- readLines(path_yaml)
   config_lines[11] <- "  data.csv: none.csv"
   writeLines(config_lines, path_yaml)
-  
+
   expected_error <- "Global resources in '.+/global' does not exist: 'none.csv'"
 
-  tmp <- tempfile()
   expect_error(
-    orderly_run("example", root = path, id_file = tmp, echo = FALSE),
+    orderly_run("example", root = path, echo = FALSE),
                 expected_error)
 })
 
 
 test_that("global resources end up in db", {
   skip_on_cran_windows()
-  path <- prepare_orderly_example("global", testing = TRUE)
-  tmp <- tempfile()
-  id <- orderly_run("example", root = path, id_file = tmp, echo = FALSE)
+  path <- test_prepare_orderly_example("global", testing = TRUE)
+  id <- orderly_run("example", root = path, echo = FALSE)
   orderly_commit(id, root = path)
   con <- orderly_db("destination", root = path)
   d <- DBI::dbReadTable(con, "file_input")
@@ -50,7 +59,7 @@ test_that("global resources end up in db", {
 
 ## We can relax this once VIMC-2961 is resolved
 test_that("directories of global resources are forbidden", {
-  path <- prepare_orderly_example("global", testing = TRUE)
+  path <- test_prepare_orderly_example("global", testing = TRUE)
   p_global <- file.path(path, "global", "dir")
   dir.create(p_global)
 
@@ -67,7 +76,7 @@ test_that("directories of global resources are forbidden", {
 
 test_that("global resource from a subdir", {
   skip_on_cran_windows()
-  path <- prepare_orderly_example("global", testing = TRUE)
+  path <- test_prepare_orderly_example("global", testing = TRUE)
   dir.create(file.path(path, "global", "dir"))
   file.rename(file.path(path, "global", "data.csv"),
               file.path(path, "global", "dir", "data.csv"))
@@ -98,7 +107,7 @@ test_that("global resource from a subdir", {
 
 test_that("rename global resource on import, into new dir", {
   skip_on_cran_windows()
-  path <- prepare_orderly_example("global", testing = TRUE)
+  path <- test_prepare_orderly_example("global", testing = TRUE)
   dir.create(file.path(path, "global", "dir"))
   file.rename(file.path(path, "global", "data.csv"),
               file.path(path, "global", "dir", "globaldata.csv"))

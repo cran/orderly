@@ -9,6 +9,10 @@
 ##' @param name The name of the report - this can be omitted and the
 ##'   name will be determined from the \code{id}.
 ##'
+##' @param timeout Time in seconds to wait for db to be available. In
+##'   parallel the database may become locked so we can choose to wait
+##'   for \code{timeout} seconds before throwing an error.
+##'
 ##' @inheritParams orderly_list
 ##'
 ##' @return The path to the newly committed report
@@ -23,11 +27,12 @@
 ##' orderly::orderly_commit(id, root = path)
 ##'
 ##' # The report is now committed, and as such could be used as a
-##' # depenency in another report and is not subject to deletion by
+##' # dependency in another report and is not subject to deletion by
 ##' # orderly::orderly_cleanup
 ##' orderly::orderly_list_archive(root = path)
-orderly_commit <- function(id, name = NULL, root = NULL, locate = TRUE) {
-  config <- orderly_config_get(root, locate)
+orderly_commit <- function(id, name = NULL, root = NULL, locate = TRUE,
+                           timeout = 10) {
+  config <- orderly_config(root, locate)
   config <- check_orderly_archive_version(config)
   if (is.null(name)) {
     name <- orderly_find_name(id, config, draft = TRUE, must_work = TRUE)
@@ -37,11 +42,16 @@ orderly_commit <- function(id, name = NULL, root = NULL, locate = TRUE) {
     }
   }
   workdir <- file.path(path_draft(config$root), name, id)
-  recipe_commit(workdir, config$root)
+
+  capture_log <- isTRUE(config$get_run_option("capture_log"))
+  logfile <- path_orderly_log(file.path(path_draft(config$root), name, id))
+  conditional_capture_log(
+    capture_log, logfile,
+    recipe_commit(workdir, config$root, timeout))
 }
 
-recipe_commit <- function(workdir, config) {
-  config <- orderly_config_get(config)
+recipe_commit <- function(workdir, config, timeout) {
+  config <- orderly_config(config)
   name <- basename(dirname(workdir))
   id <- basename(workdir)
   orderly_log("commit", sprintf("%s/%s", name, id))
@@ -67,7 +77,7 @@ recipe_commit <- function(workdir, config) {
   dest <- copy_report(workdir, name, config)
 
   withCallingHandlers(
-    report_db_import(name, id, config),
+    report_db_import(name, id, config, timeout),
     error = function(e) unlink(dest, TRUE))
 
   ## After success we can delete the draft directory

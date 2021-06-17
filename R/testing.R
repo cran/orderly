@@ -16,6 +16,12 @@
 ##' @param quiet Logical, indicating if informational messages should
 ##'   be suppressed when running the demo.
 ##'
+##' @param git Logical, indicating if we should create an basic git
+##'   repository along with the demo. This will have the default
+##'   orderly .gitignore set up, and a remote which is itself (so that
+##'   git pull and git fetch run without error, though they will do
+##'   nothing).
+##'
 ##' @return Returns the path to the orderly example
 ##' @export
 ##' @examples
@@ -26,8 +32,8 @@
 ##' # Example reports within this repository:
 ##' orderly::orderly_list(path)
 orderly_example <- function(name, path = tempfile(), run_demo = FALSE,
-                            quiet = FALSE) {
-  path <- prepare_orderly_example(name, path)
+                            quiet = FALSE, git = FALSE) {
+  path <- prepare_orderly_example(name, path, git = git)
   if (run_demo && file.exists(path_demo_yml(path))) {
     run_orderly_demo(path, quiet)
   }
@@ -39,8 +45,9 @@ orderly_example <- function(name, path = tempfile(), run_demo = FALSE,
 ## with prepare_orderly_example below that simply prepares the
 ## source).  This is used to create a set of data for testing the API.
 ## See inst/demo/demo.yml for more information.
-create_orderly_demo <- function(path = tempfile(), quiet = FALSE) {
-  orderly_example("demo", path, TRUE, quiet)
+create_orderly_demo <- function(path = tempfile(), quiet = FALSE,
+                                git = FALSE) {
+  orderly_example("demo", path, TRUE, quiet, git)
 }
 
 
@@ -95,7 +102,8 @@ fake_db <- function(con, seed = 1) {
 
 ## Copy an example directory from 'inst/' and set up the source
 ## database ready to be used.
-prepare_orderly_example <- function(name, path = tempfile(), testing = FALSE) {
+prepare_orderly_example <- function(name, path = tempfile(), testing = FALSE,
+                                    git = FALSE) {
   if (testing) {
     src <- file.path("examples", name)
     stopifnot(file.exists(src))
@@ -103,6 +111,7 @@ prepare_orderly_example <- function(name, path = tempfile(), testing = FALSE) {
     src <- orderly_file(file.path("examples", name))
   }
   orderly_init(path, quiet = TRUE)
+  path <- normalizePath(path, mustWork = TRUE)
   src_files <- dir(src, full.names = TRUE)
   file_copy(src_files, path, overwrite = TRUE, recursive = TRUE)
 
@@ -116,6 +125,11 @@ prepare_orderly_example <- function(name, path = tempfile(), testing = FALSE) {
   if (length(con) > 0L) {
     generator(con)
   }
+
+  if (git) {
+    prepare_basic_git(path, quiet = TRUE)
+  }
+
   path
 }
 
@@ -184,9 +198,9 @@ demo_change_time <- function(id, time, path) {
 ## After building this we have two branches 'master' with
 build_git_demo <- function() {
   path <- prepare_orderly_example("demo", file.path(tempfile(), "demo"))
-
   dir.create(file.path(path, "extra"))
-  move <- setdiff(dir(file.path(path, "src"), pattern = "^[^.]+$"), "minimal")
+  move <- setdiff(dir(file.path(path, "src"), pattern = "^[^.]+$"),
+                  c("minimal", "global"))
   file.rename(file.path(path, "src", move),
               file.path(path, "extra", move))
 
@@ -194,8 +208,11 @@ build_git_demo <- function() {
   git_run(c("config", "user.email", "email@example.com"), root = path,
           check = TRUE)
   git_run(c("config", "user.name", "orderly"), root = path, check = TRUE)
-  writeLines(c("source.sqlite", "orderly.sqlite",
-               "archive", "data", "draft", "extra", "runner", "upstream"),
+  orderly_use_gitignore(path, prompt = FALSE, show = FALSE)
+  gitignore <- readLines(file.path(path, ".gitignore"))
+  ## Ignore "extra" dir created above and "upstream" used to store a remote git
+  ## repo for testing in orderly.server
+  writeLines(c(gitignore, "extra", "upstream"),
              file.path(path, ".gitignore"))
   git_run(c("add", "."), root = path, check = TRUE)
   git_run(c("add", "-f", "archive", "data", "draft"), root = path, check = TRUE)
@@ -230,14 +247,18 @@ unzip_git_demo <- function(path = tempfile()) {
   path
 }
 
-prepare_orderly_git_example <- function(path = tempfile(), run_report = FALSE) {
+prepare_orderly_git_example <- function(path = tempfile(), run_report = FALSE,
+                                        branch = "master") {
   path_upstream <- file.path(path, "upstream")
   unzip_git_demo(path)
   unzip_git_demo(path_upstream)
+  git_checkout_branch(branch, root = path)
+  git_checkout_branch(branch, root = path_upstream)
 
   git_run(c("remote", "add", "origin", basename(path_upstream)), path)
   git_fetch(path)
-  git_run(c("branch", "--set-upstream-to", "origin/master", "master"), path)
+  git_run(c("branch", "--set-upstream-to", sprintf("origin/%s", branch),
+            branch), path)
 
   writeLines("new", file.path(path_upstream, "new"))
   git_run(c("add", "."), path_upstream)
@@ -249,4 +270,19 @@ prepare_orderly_git_example <- function(path = tempfile(), run_report = FALSE) {
   }
 
   c(origin = path_upstream, local = path)
+}
+
+
+prepare_basic_git <- function(path, quiet) {
+  orderly_use_gitignore(path, prompt = FALSE, show = FALSE)
+  gert::git_init(path)
+  withr::with_dir(
+    path,
+    gert::git_add(".", repo = path))
+  gert::git_commit("Init repo", repo = path,
+                   author = "T User <test.user@example.com>")
+  gert::git_remote_add(path, "origin", repo = path)
+  gert::git_fetch(remote = "origin", repo = path, verbose = !quiet)
+  gert::git_branch_set_upstream("origin/master", "master", repo = path)
+  path
 }

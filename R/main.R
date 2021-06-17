@@ -26,6 +26,10 @@ cli_args_process <- function(args) {
     dat$options$name <- dat$options[["<name>"]] # docopt bug?
   } else if (dat$command == "list") {
     dat$options$type <- cli_args_process_list_type(dat$options)
+  } else if (dat$command == "batch") {
+    dat$options$parameters <- cli_args_process_batch_parameters(
+      dat$options$parameter, dat$options$file)
+    dat$options$name <- dat$options[["<name>"]] # docopt bug?
   }
 
   dat
@@ -43,15 +47,17 @@ Commands:
   commit       Commit a report
   list         List reports
   latest       Find the most recent report
+  pull         Pull reports from remote servers
   cleanup      Remove drafts and dangling data
   rebuild      Rebuild the database
-  migrate      Migrate the archive"
+  migrate      Migrate the archive
+  batch        Run a batch of reports"
 
 cli_args_preprocess <- function(args) {
   ## This will work ok for filtering away unwanted arguments *if* the
   ## user chooses a reasonable argument name.  Things like
   ##
-  ##   orderly ruin --option name
+  ##   orderly run --option name
   ##
   ## will create some odd error messages, because the --option is not
   ## accepted.
@@ -78,16 +84,47 @@ cli_args_process_run_parameters <- function(parameters) {
   if (length(parameters) == 0L) {
     NULL
   } else {
-    p <- strsplit(parameters, "=", fixed = TRUE)
-    err <- lengths(p) != 2
-    if (any(err)) {
-      stop(sprintf(
-        "Invalid parameters %s - all must be in form key=value",
-        paste(squote(parameters[err]), collapse = ", ")))
-    }
+    p <- split_key_values(parameters)
     value <- lapply(p, function(x) parse_parameter(x[[2L]]))
     set_names(value, vcapply(p, "[[", 1L))
   }
+}
+
+cli_args_process_batch_parameters <- function(parameters, file) {
+  if (!is.null(file)) {
+    ## For now just assuming that this is a csv file but we can switch
+    ## behaviour here and take json if needed.
+    assert_file_exists(file, FALSE, name = "Parameters file")
+    read_csv(file, check.names = FALSE)
+  } else if (length(parameters) == 0L) {
+    NULL
+  } else {
+    p <- split_key_values(parameters)
+    values_per_param <- lengths(strsplit(unlist(parameters), ","))
+    if (length(unique(values_per_param)) != 1) {
+      stop(sprintf(
+        "All params must have the same number of values, got \n%s",
+        paste(parameters, collapse = "\n")
+      ))
+    }
+    value <- lapply(p, function(x) parse_batch_parameters(x[[2L]]))
+    t <- set_names(value, vcapply(p, "[[", 1L))
+    columns <- lapply(t, function(col) {
+      unlist(matrix(col))
+    })
+    do.call(cbind.data.frame, c(columns, stringsAsFactors = FALSE))
+  }
+}
+
+split_key_values <- function(parameters) {
+  p <- strsplit(parameters, "=", fixed = TRUE)
+  err <- lengths(p) != 2
+  if (any(err)) {
+    stop(sprintf(
+      "Invalid parameters %s - all must be in form key=value",
+      paste(squote(parameters[err]), collapse = ", ")))
+  }
+  p
 }
 
 
@@ -102,13 +139,15 @@ usage_run <- "Usage:
   orderly run [options] <name> [<parameter>...]
 
 Options:
-  --no-commit     Do not commit the report
-  --print-log     Print the log (rather than storing it)
-  --id-file=FILE  File to write the id into
-  --ref=REF       Git reference (branch or sha) to use
-  --fetch         Fetch git before updating reference
-  --pull          Pull git before running report
-  --message=TEXT  A message explaining why the report was run
+  --instance=NAME     Database instance to use (if instances are configured)
+  --no-commit         Do not commit the report
+  --print-log         Print the log (rather than storing it)
+  --id-file=FILE      File to write the id into
+  --ref=REF           Git reference (branch or sha) to use
+  --fetch             Fetch git before updating reference
+  --pull              Pull git before running report
+  --message=TEXT      A message explaining why the report was run
+  --workflow-id=TEXT  The ID of the workflow this report is run as part of
 
 Parameters, if given, must be passed through in key=value pairs"
 
@@ -122,10 +161,10 @@ main_do_run <- function(x) {
   ## * error while preparing (e.g., package not found)
   ## * error while running report
   ## * error checking artefacts
-  config <- orderly_config_get(x$options$root, TRUE)
+  config <- orderly_config(x$options$root, TRUE)
   name <- x$options$name
   commit <- !x$options$no_commit
-  parameters <- x$options$parameters
+  instance <- x$options$instance
   id_file <- x$options$id_file
   parameters <- x$options$parameters
   print_log <- x$options$print_log
@@ -133,42 +172,21 @@ main_do_run <- function(x) {
   fetch <- x$options$fetch
   pull <- x$options$pull
   message <- x$options$message
-
-  main_run <- function() {
-    if (pull) {
-      if (is.null(ref)) {
-        git_pull(config$root)
-      } else {
-        orderly_cli_error(
-          "Can't use --pull with --ref; perhaps you meant --fetch ?")
-      }
-    }
-    id <- orderly_run(name, parameters, root = config, id_file = id_file,
-                      ref = ref, fetch = fetch, message = message)
-    if (commit) {
-      orderly_commit(id, name, config)
-    }
-    id
-  }
+  workflow_id <- x$options$workflow_id
 
   if (print_log) {
     sink(stderr(), type = "output")
     on.exit(sink(NULL, type = "output"))
-    id <- main_run()
-  } else {
-    log <- tempfile()
-    ## we should run this with try() so that we can capture logs there
-    id <- capture_log(main_run(), log)
-    dest <- (if (commit) path_archive else path_draft)(config$root)
-    file_copy(log, file.path(dest, name, id, "orderly.log"))
   }
 
-  if (commit) {
-    path_rds <- path_orderly_run_rds(
-      file.path(config$root, "archive", name, id))
-    slack_post_success(readRDS(path_rds), config)
-  }
+  git_pull_ref(pull, ref, config, message =
+                 "Can't use --pull with --ref; perhaps you meant --fetch ?")
 
+  id <- orderly_run_internal(name, parameters, root = config,
+                             id_file = id_file, instance = instance,
+                             ref = ref, fetch = fetch, message = message,
+                             commit = commit, capture_log = !print_log,
+                             workflow_id = workflow_id)
   message("id:", id)
 }
 
@@ -263,7 +281,35 @@ main_do_latest <- function(x) {
 }
 
 
-## 8. migrate
+usage_pull <- "Usage:
+  orderly pull [options] <name>...
+Options:
+  --dependencies  Pull *dependencies* of the report, not the report itself
+  --id=ID         The id to use when pulling a single report (default: latest)
+  --remote=NAME   Name of the remote to pull from"
+
+
+main_do_pull <- function(x) {
+  root <- x$options$root
+  name <- x$options$name
+  id <- x$options$id
+  remote <- x$options$remote
+  dependencies <- x$options$dependencies
+
+  if (dependencies) {
+    if (!is.null(id)) {
+      stop("Do not provide --id with --dependencies", call. = FALSE)
+    }
+    orderly_pull_dependencies(name, remote = remote,
+                              root = root, locate = TRUE)
+  } else {
+    orderly_pull_archive(name, id, remote = remote,
+                         root = root, locate = TRUE)
+  }
+}
+
+
+## 7. migrate
 usage_migrate <- "Usage:
   orderly migrate [options]
 
@@ -282,16 +328,74 @@ main_do_migrate <- function(x) {
 }
 
 
+## 8. batch
+usage_batch <- "Usage:
+  orderly batch [options] <name> ([<parameter>...]|--file=FILE)
+
+Options:
+  --file=FILE      File to read batch parameters from
+  --instance=NAME  Database instance to use (if instances are configured)
+  --print-log      Print the logs (rather than storing it)
+  --ref=REF        Git reference (branch or sha) to use
+  --fetch          Fetch git before updating reference
+  --pull           Pull git before running report
+  --message=TEXT   A message explaining why the reports were run
+
+Parameters, if given, must be passed through as comma separated
+key=value1,value2 pairs"
+
+main_do_batch <- function(x) {
+  ## TODO: Get some classed errors though here and then write out
+  ## information about whether or not things worked and why they
+  ## didn't.  Possible issues (in order)
+  ##
+  ## * orderly report not found
+  ## * error while preparing (e.g., package not found)
+  ## * error while running report
+  ## * error checking artefacts
+  config <- orderly_config(x$options$root, TRUE)
+  name <- x$options$name
+  instance <- x$options$instance
+  parameters <- x$options$parameters
+  print_log <- x$options$print_log
+  ref <- x$options$ref
+  fetch <- x$options$fetch
+  pull <- x$options$pull
+  message <- x$options$message
+
+  if (print_log) {
+    sink(stderr(), type = "output")
+    on.exit(sink(NULL, type = "output"))
+  } else {
+    config$add_run_option("capture_log", TRUE)
+  }
+
+  git_pull_ref(pull, ref, config, message =
+                 "Can't use --pull with --ref; perhaps you meant --fetch ?")
+
+  ids <- orderly_batch(name, parameters, root = config, instance = instance,
+                    ref = ref, fetch = fetch, message = message)
+  lapply(ids, function(id) {
+    orderly_commit(id, name, config)
+    path_rds <- path_orderly_run_rds(
+      file.path(config$root, "archive", name, id))
+    post_success(readRDS(path_rds), config)
+  })
+
+  message("ids:", paste(ids, collapse = ", "))
+}
+
+
 write_script <- function(path, versioned = FALSE) {
   if (!isTRUE(is_directory(path))) {
     stop("'path' must be a directory")
   }
   if (versioned) {
-    Rscript <- file.path(R.home(), "bin", "Rscript")
+    rscript <- file.path(R.home(), "bin", "Rscript")
   } else {
-    Rscript <- "/usr/bin/env Rscript"
+    rscript <- "/usr/bin/env Rscript"
   }
-  code <- c(sprintf("#!%s", Rscript),
+  code <- c(sprintf("#!%s", rscript),
             readLines(orderly_file("script")))
   path_bin <- file.path(path, "orderly")
   writeLines(code, path_bin)
@@ -313,6 +417,9 @@ cli_commands <- function() {
        latest = list(name = "find most recent report",
                      usage = usage_latest,
                      target = main_do_latest),
+       pull = list(name = "pull reports from remote servers",
+                   usage = usage_pull,
+                   target = main_do_pull),
        cleanup = list(name = "remove drafts and dangling data",
                       usage = usage_cleanup,
                       target = main_do_cleanup),
@@ -321,19 +428,34 @@ cli_commands <- function() {
                       target = main_do_rebuild),
        migrate = list(name = "migrate the archive",
                       usage = usage_migrate,
-                      target = main_do_migrate))
+                      target = main_do_migrate),
+       batch = list(name = "batch run reports",
+                      usage = usage_batch,
+                      target = main_do_batch))
 }
 
 
 parse_parameter <- function(x) {
-  value <- parse(text = x)[[1]]
+  value <- tryCatch(parse(text = x)[[1]], error = function(e) x)
   if (is.logical(value) || is.numeric(value)) {
     value
+  } else if (is.character(x) && grepl('^(".*"|\'.*\')$', x)) {
+    substr(x, 2, nchar(x) - 1L)
   } else {
     x
   }
 }
 
+parse_batch_parameters <- function(x) {
+  if (grepl("\\s", x)) {
+    stop(sprintf(
+      "Parameters with whitespace not supported in batch run, got param '%s'",
+      x))
+  }
+  params <- strsplit(x, ",")[[1]]
+  params <- lapply(params, parse_parameter)
+  params
+}
 
 docopt_parse <- function(...) {
   tryCatch(
@@ -349,4 +471,14 @@ orderly_cli_error <- function(str) {
   err <- list(message = str)
   class(err) <- c("orderly_cli_error", "error", "condition")
   stop(err)
+}
+
+git_pull_ref <- function(pull, ref, config, message) {
+  if (pull) {
+    if (is.null(ref)) {
+      git_pull(config$root)
+    } else {
+      orderly_cli_error(message)
+    }
+  }
 }

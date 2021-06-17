@@ -57,7 +57,7 @@ test_that("failed migrations are rolled back", {
     list(changed = TRUE, data = data)
   }
 
-  config <- orderly_config(path)
+  config <- orderly_config_$new(path)
   expect_error(migrate_apply(path, "0.3.3", fun, config, FALSE, FALSE),
                "some sort of migration failure")
   cmp <- hash_files(list.files(path, recursive = TRUE, full.names = TRUE))
@@ -83,7 +83,7 @@ test_that("failed migrations can be skipped", {
   }
 
   patch_orderly_config(path)
-  config <- orderly_config(path)
+  config <- orderly_config_$new(path)
   migrate_apply(path, "0.3.3", fun, config, FALSE, TRUE)
 
   id <- "20170805-220525-1dc8fb81"
@@ -115,7 +115,7 @@ test_that("failed migrations warned in dry run", {
   }
 
   patch_orderly_config(path)
-  config <- orderly_config(path)
+  config <- orderly_config_$new(path)
   expect_message(
     migrate_apply(path, "0.3.3", fun, config, TRUE, TRUE),
     "this report would be moved to")
@@ -140,7 +140,7 @@ test_that("migrate_plan default is used", {
   on.exit(options(oo))
 
   path <- unpack_reference("0.3.2")
-  config <- orderly_config(path)
+  config <- orderly_config_$new(path)
   expect_equal(migrate_plan(config$archive_version), available_migrations())
   expect_equal(migrate_plan(config$archive_version, to = "0.0.1"),
                set_names(character(), character()))
@@ -165,7 +165,8 @@ test_that("mixed migration", {
   msg <- capture_messages(
     orderly_migrate(path, to = curr))
   expect_true(
-    any(grepl(sprintf("[ ok         ]  example/%s", id), msg, fixed = TRUE)))
+    any(grepl(sprintf("[ ok         ]  example/%s", id),
+              crayon::strip_style(msg), fixed = TRUE)))
 })
 
 
@@ -207,10 +208,10 @@ test_that("don't migrate new orderly", {
   oo <- options(orderly.nowarnings = TRUE)
   on.exit(options(oo))
 
-  path <- prepare_orderly_example("minimal")
+  path <- test_prepare_orderly_example("minimal")
   p <- path_orderly_archive_version(path)
   unlink(p)
-  check_orderly_archive_version(orderly_config(path))
+  check_orderly_archive_version(orderly_config_$new(path))
   expect_true(file.exists(p))
   expect_equal(read_orderly_archive_version(path),
                as.character(cache$current_archive_version))
@@ -506,11 +507,11 @@ test_that("clean up migrations", {
   on.exit(options(oo))
 
   path <- unpack_reference("0.6.0")
-  files <- list.files(path, "^orderly_run_([0-9]+\\.){3}rds",
+  files <- list.files(path, "^orderly_run_([0-9]+\\.){3}rds", # nolint
                       recursive = TRUE, full.names = TRUE)
   expect_true(length(files) == 0)
   orderly_migrate(path, to = "0.7.15", clean = FALSE)
-  files <- list.files(path, "^orderly_run_([0-9]+\\.){3}rds",
+  files <- list.files(path, "^orderly_run_([0-9]+\\.){3}rds", # nolint
                       recursive = TRUE, full.names = TRUE)
   expect_true(length(files) > 0)
 
@@ -520,7 +521,44 @@ test_that("clean up migrations", {
   orderly_migrate(path, to = "0.7.15", clean = TRUE)
   expect_false(any(file.exists(files)))
 
-  files <- list.files(path, "^orderly_run_([0-9]+\\.){3}rds",
+  files <- list.files(path, "^orderly_run_([0-9]+\\.){3}rds", # nolint
                       recursive = TRUE, full.names = TRUE)
   expect_equal(files, character(0))
+})
+
+
+test_that("migrate 0.3.2 => 1.1.25 adds elapsed", {
+  oo <- options(orderly.nowarnings = TRUE)
+  on.exit(options(oo))
+
+  path <- unpack_reference("0.3.2")
+  d <- orderly_list_archive(path)
+  p <- path_orderly_run_rds(file.path(path, "archive", d$name, d$id))[[1]]
+  expect_null(readRDS(p)$meta$elapsed)
+
+  orderly_migrate(path, to = "1.1.25")
+  orderly_rebuild(path)
+
+  expect_equal(readRDS(p)$meta$elapsed, 0)
+  con <- orderly_db("destination", path, validate = FALSE)
+  on.exit(DBI::dbDisconnect(con), add = TRUE)
+  dat <- DBI::dbReadTable(con, "report_version")
+  expect_equal(dat$elapsed, rep(0, nrow(dat)))
+})
+
+
+test_that("migrate 0.6.0 => 1.1.25 preserves elapsed", {
+  oo <- options(orderly.nowarnings = TRUE)
+  on.exit(options(oo))
+
+  path <- unpack_reference("0.6.0")
+  d <- orderly_list_archive(path)
+  p <- path_orderly_run_rds(file.path(path, "archive", d$name, d$id))[[1]]
+  prev <- readRDS(p)
+  expect_is(prev$meta$elapsed, "numeric")
+
+  orderly_migrate(path, to = "1.1.25")
+  orderly_rebuild(path)
+
+  expect_equal(readRDS(p)$meta$elapsed, prev$meta$elapsed)
 })

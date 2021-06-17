@@ -3,23 +3,29 @@
 \name{orderly_test_start}
 \alias{orderly_test_start}
 \alias{orderly_test_check}
-\alias{orderly_data}
 \title{Prepare a directory for orderly to use}
 \usage{
-orderly_test_start(name, parameters = NULL, envir = parent.frame(),
-  root = NULL, locate = TRUE)
+orderly_test_start(
+  name,
+  parameters = NULL,
+  envir = parent.frame(),
+  root = NULL,
+  locate = TRUE,
+  instance = NULL,
+  use_draft = FALSE,
+  remote = NULL
+)
 
 orderly_test_check(path = NULL)
-
-orderly_data(name, parameters = NULL, envir = NULL, root = NULL,
-  locate = TRUE)
 }
 \arguments{
 \item{name}{Name of the report to run (see
-\code{\link{orderly_list}}).}
+\code{\link{orderly_list}}).  A leading \code{src/} will be
+removed if provided, allowing easier use of autocomplete.}
 
 \item{parameters}{Parameters passed to the report. A named list of
-parameters declared in the \code{orderly.yml}.}
+parameters declared in the \code{orderly.yml}.  Each parameter
+must be a scalar character, numeric, integer or logical.}
 
 \item{envir}{The parent of the environment that will be used to
 evaluate the report script; by default a new environment will be
@@ -34,6 +40,33 @@ searched for.  If \code{TRUE} and \code{config} is not given,
 then orderly looks in the working directory and up through its
 parents until it finds an \code{orderly_config.yml} file.}
 
+\item{instance}{Select instance of the source database to be used,
+where multiple instances are configured.  Use a single
+\emph{unnamed} character string to indicate an instance to
+match.  If given, then this name must be present in all
+databases where instances are listed in
+\code{orderly_config.yml}, and will be ignored by all database
+where instances are not given.  See the "orderly" vignette for
+further information.}
+
+\item{use_draft}{Should draft reports be used for dependencies?
+This should be used only in development.  Valid values are
+logical (\code{TRUE}, \code{FALSE}) or use the string
+\code{newer} to use draft reports where they are newer than
+archive reports.  For consistency, \code{always} and
+\code{never} are equivalent to \code{TRUE} and \code{FALSE},
+respectively.}
+
+\item{remote}{Remote to use to resolve dependencies.  Use this in
+order to run a report with the same dependencies as are
+available on a remote server, particularly when using \code{id =
+"latest"}.  Note that this is not the same as running
+\code{\link{orderly_pull_dependencies}}, then \code{orderly_run}
+with \code{remote = NULL}, as the pull/run approach will use the
+latest report in \emph{your} archive but the \code{remote =
+"remote"} approach will use the latest approach in the
+\emph{remote} archive (which might be less recent).}
+
 \item{path}{Path to the report that is currently being run}
 }
 \value{
@@ -44,8 +77,7 @@ For interactive testing of orderly code.  This runs through and
 sets everything up as orderly would (creates a new working
 directory and copies files into it, pulls data from the database,
 copies over any dependent reports) but then rather than running
-the report hands back to the user. The \code{orderly_data}
-function returns an environment with the extracted data.
+the report hands back to the user.
 }
 \details{
 Previous versions of orderly changed into the created directory
@@ -86,13 +118,4 @@ dev.off()
 
 # We now confirm that the artefact has been created:
 orderly::orderly_test_check(p)
-# The function orderly_data does all the preparation work that
-# orderly_run does, but does not run the report; instead it
-# returns the created environment with all the data and parameters
-# set.
-path <- orderly::orderly_example("demo")
-env <- orderly::orderly_data("other", list(nmin = 0.2), root = path)
-ls(env)
-env$nmin
-env$extract
 }

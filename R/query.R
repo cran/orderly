@@ -1,4 +1,4 @@
-VERSION_ID_RE <- "^([0-9]{8}-[0-9]{6})-([[:xdigit:]]{4})([[:xdigit:]]{4})$"
+version_id_re <- "^([0-9]{8}-[0-9]{6})-([[:xdigit:]]{4})([[:xdigit:]]{4})$"
 
 ## This gives a list of the source report names known to the system.
 ## This will not include things that have been deleted in source but
@@ -35,7 +35,7 @@ VERSION_ID_RE <- "^([0-9]{8}-[0-9]{6})-([[:xdigit:]]{4})([[:xdigit:]]{4})$"
 ##' # Reports that _could_ be run:
 ##' orderly::orderly_list(path)
 orderly_list <- function(root = NULL, locate = TRUE) {
-  config <- orderly_config_get(root, locate)
+  config <- orderly_config(root, locate)
   basename(list_dirs(path_src(config$root)))
 }
 
@@ -45,6 +45,11 @@ orderly_list <- function(root = NULL, locate = TRUE) {
 ##' @title List draft and archived reports
 ##'
 ##' @inheritParams orderly_list
+##'
+##' @param include_failed Logical, indicating if failed drafts should
+##'   be listed (only has an effect for \code{orderly_list_drafts} as
+##'   no failed run should make it into the archive).  A failed report
+##'   is one that lacks an \code{orderly_run.rds} file.
 ##'
 ##' @seealso \code{\link{orderly_list}}, which lists the names of
 ##'   source reports that can be run, and \code{\link{orderly_latest}}
@@ -81,8 +86,9 @@ orderly_list <- function(root = NULL, locate = TRUE) {
 ##'
 ##' # And the second report is in the archive:
 ##' orderly::orderly_list_archive(path)
-orderly_list_drafts <- function(root = NULL, locate = TRUE) {
-  orderly_list2(TRUE, root, locate)
+orderly_list_drafts <- function(root = NULL, locate = TRUE,
+                                include_failed = FALSE) {
+  orderly_list2(TRUE, root, locate, include_failed)
 }
 
 ##' @export
@@ -100,7 +106,11 @@ orderly_list_archive <- function(root = NULL, locate = TRUE) {
 ##' @param name Name of the report to find; if \code{NULL} returns the
 ##'   most recent report across all names
 ##'
-##' @param draft Find most recent \emph{draft} report
+##' @param draft Should draft reports be used searched? Valid values
+##'   are logical (\code{TRUE}, \code{FALSE}) or use the string
+##'   \code{newer} to use draft reports where they are newer than
+##'   archive reports. For consistency, \code{always} and \code{never}
+##'   are equivalent to \code{TRUE} and \code{FALSE}, respectively.
 ##'
 ##' @param must_work Throw an error if no report is found.  If FALSE,
 ##'   returns \code{NA_character_}.
@@ -131,24 +141,27 @@ orderly_list_archive <- function(root = NULL, locate = TRUE) {
 ##' orderly::orderly_latest("example", root = path)
 orderly_latest <- function(name = NULL, root = NULL, locate = TRUE,
                            draft = FALSE, must_work = TRUE) {
-  config <- orderly_config_get(root, locate)
+  config <- orderly_config(root, locate)
 
-  if (is.null(name)) {
-    d <- orderly_list2(draft, config, FALSE)
-    ids <- d$id
-    path <-
-      file.path((if (draft) path_draft else path_archive)(config$root), d$name)
-  } else {
-    path <-
-      file.path((if (draft) path_draft else path_archive)(config$root), name)
-    ids <- orderly_list_dir(path)
+  draft <- query_check_draft(draft)
+  path_funcs <- switch(draft,
+                       always = list(list_draft),
+                       never = list(list_archive),
+                       newer = list(list_draft, list_archive))
+  what <- switch(draft,
+                 always = "draft",
+                 never = "archive",
+                 newer = "draft or archive")
+
+  ids <- character(0)
+  for (func in path_funcs) {
+    ids <- c(ids, func(name, config))
   }
 
   if (length(ids) == 0L) {
     if (must_work) {
-      type <- if (draft) "draft" else "archive"
       name <- name %||% "any report"
-      stop(sprintf("Did not find any %s reports for %s", type, name))
+      stop(sprintf("Did not find any %s reports for %s", what, name))
     } else {
       return(NA_character_)
     }
@@ -157,12 +170,34 @@ orderly_latest <- function(name = NULL, root = NULL, locate = TRUE,
   latest_id(ids)
 }
 
+list_archive <- function(name, config) {
+  if (is.null(name)) {
+    d <- orderly_list2(FALSE, config, FALSE)
+    d$id
+  } else {
+    path <- file.path(path_archive(config$root), name)
+    orderly_list_dir(path, check_run_rds = FALSE)
+  }
+}
 
-orderly_list2 <- function(draft, root = NULL, locate = TRUE) {
-  config <- orderly_config_get(root, locate)
+list_draft <- function(name, config) {
+  if (is.null(name)) {
+    d <- orderly_list2(TRUE, config, FALSE)
+    d$id
+  } else {
+    path <- file.path(path_draft(config$root), name)
+    orderly_list_dir(path, check_run_rds = TRUE)
+  }
+}
+
+
+orderly_list2 <- function(draft, root = NULL, locate = TRUE,
+                          include_failed = FALSE) {
+  config <- orderly_config(root, locate)
   path <- if (draft) path_draft else path_archive
   check <- list_dirs(path(config$root))
-  res <- lapply(check, orderly_list_dir)
+  check_run_rds <- draft && !include_failed
+  res <- lapply(check, orderly_list_dir, check_run_rds = check_run_rds)
   data.frame(name = rep(basename(check), lengths(res)),
              id = as.character(unlist(res)),
              stringsAsFactors = FALSE)
@@ -170,7 +205,7 @@ orderly_list2 <- function(draft, root = NULL, locate = TRUE) {
 
 orderly_find_name <- function(id, config, locate = FALSE, draft = TRUE,
                               must_work = FALSE) {
-  config <- orderly_config_get(config, locate)
+  config <- orderly_config(config, locate)
   path <- (if (draft) path_draft else path_archive)(config$root)
   ## NOTE: listing draft/archive rather than using orderly_list here
   ## because it allows for the existance of an archived report that we
@@ -190,25 +225,69 @@ orderly_find_name <- function(id, config, locate = FALSE, draft = TRUE,
   }
 }
 
+## This is only used in one place, and so we can be quite flexible in
+## how it is used.  It's a bit of a horror show, tbh, given how simple
+## what we want to achieve is.  This function is not an orderly API
+## function, and is used only in dependency resolution, so we can
+## update this later if needed.
 orderly_find_report <- function(id, name, config, locate = FALSE,
                                 draft = TRUE, must_work = FALSE) {
-  config <- orderly_config_get(config, locate)
-  path <-
-    file.path((if (draft) path_draft else path_archive)(config$root), name)
+  config <- orderly_config(config, locate)
+
+  draft <- query_check_draft(draft)
+  search_draft <- draft != "never"
+  search_archive <- draft != "always"
+  what <- switch(draft,
+                 always = "draft",
+                 never = "archive",
+                 newer = "draft or archive")
+
+  name <- clean_report_name(name)
+  base_archive <- file.path(path_archive(config$root), name)
+  base_draft <- file.path(path_draft(config$root), name)
+
   if (id == "latest") {
-    id <- orderly_latest(name, config, FALSE,
-                         draft = draft, must_work = must_work)
-  }
-  path_report <- file.path(path, id)
-  if (!is.na(id) && file.exists(path_report)) {
-    return(path_report)
-  }
-  if (must_work) {
-    stop(sprintf("Did not find %s report %s:%s",
-                 if (draft) "draft" else "archived", name, id))
+    path <- NULL
+    if (search_archive) {
+      found <- orderly_latest(name, config, draft = FALSE, must_work = FALSE)
+      if (!is.na(found)) {
+        path <- c(path, set_names(file.path(base_archive, found), found))
+      }
+    }
+
+    if (search_draft) {
+      found <- orderly_latest(name, config, draft = TRUE, must_work = FALSE)
+      if (!is.na(found)) {
+        path <- c(path, set_names(file.path(base_draft, found), found))
+      }
+    }
+
+    if (length(path) == 1L) {
+      return(path[[1L]])
+    } else if (length(path) > 1L) {
+      return(path[[latest_id(names(path))]])
+    }
   } else {
-    NULL
+    if (search_archive) {
+      path <- file.path(base_archive, id)
+      if (file.exists(path)) {
+        return(path)
+      }
+    }
+
+    if (search_draft) {
+      path <- file.path(base_draft, id)
+      if (file.exists(path)) {
+        return(path)
+      }
+    }
   }
+
+  if (must_work) {
+    stop(sprintf("Did not find %s report %s:%s", what, name, id))
+  }
+
+  NULL
 }
 
 latest_id <- function(ids) {
@@ -218,32 +297,43 @@ latest_id <- function(ids) {
 
   ids <- sort_c(unique(ids))
 
-  err <- !grepl(VERSION_ID_RE, ids)
+  err <- !grepl(version_id_re, ids)
   if (any(err)) {
     stop(sprintf("Invalid report id: %s",
                  paste(squote(ids[err]), collapse = ", ")),
          call. = FALSE)
   }
 
-  isodate <- sub(VERSION_ID_RE, "\\1", ids)
+  isodate <- sub(version_id_re, "\\1", ids)
   ids <- ids[isodate == last(isodate)]
 
   if (length(ids) > 1L) {
-    ms <- sub(VERSION_ID_RE, "\\2", ids)
-    ids <- ids[ms == last(ms)]
+    ms <- sub(version_id_re, "\\2", ids)
+    ids <- max(ids[ms == last(ms)])
   }
 
   ids
 }
 
 
-orderly_list_dir <- function(path) {
+orderly_list_dir <- function(path, check_run_rds = FALSE) {
   files <- dir(path)
-  err <- !grepl(VERSION_ID_RE, files)
+  err <- !grepl(version_id_re, files)
   if (any(err)) {
     stop(sprintf("Unexpected files within orderly directory '%s': %s",
                  path, paste(squote(files[err]), collapse = ", ")),
          call. = FALSE)
   }
+
+  if (check_run_rds && length(files) > 0L) {
+    keep <- file.exists(path_orderly_run_rds(file.path(path, files)))
+    files <- files[keep]
+  }
+
   files
+}
+
+
+id_is_query <- function(id) {
+  grepl("^latest\\s*\\(", id)
 }

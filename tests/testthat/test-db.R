@@ -16,7 +16,7 @@ test_that("custom fields", {
 
   expect_true(DBI::dbExistsTable(con, "orderly_schema"))
 
-  config <- orderly_config_get(path)
+  config <- orderly_config(path)
   expect_error(report_db_init(con, config, TRUE),
                "Table 'orderly_schema' already exists")
 
@@ -24,6 +24,7 @@ test_that("custom fields", {
   expect_error(report_db_init(con, config, FALSE),
                "custom fields 'author' not present in existing database")
 
+  unlockBinding(quote(fields), config)
   config$fields <- NULL
   expect_error(report_db_init(con, config, FALSE),
                "custom fields 'requester', 'comments' in database")
@@ -44,7 +45,7 @@ test_that("rebuild empty database", {
 
 test_that("rebuild nonempty database", {
   skip_on_cran_windows()
-  path <- prepare_orderly_example("minimal")
+  path <- test_prepare_orderly_example("minimal")
   id <- orderly_run("example", root = path, echo = FALSE)
   orderly_commit(id, root = path)
   file.remove(file.path(path, "orderly.sqlite"))
@@ -67,7 +68,7 @@ test_that("no transient db", {
 
 test_that("db includes parameters", {
   skip_on_cran_windows()
-  path <- prepare_orderly_example("demo")
+  path <- test_prepare_orderly_example("demo")
   id <- orderly_run("other", parameters = list(nmin = 0.1), root = path,
                     echo = FALSE)
   orderly_commit(id, root = path)
@@ -84,7 +85,7 @@ test_that("db includes parameters", {
 
 test_that("different parameter types are stored correctly", {
   skip_on_cran_windows()
-  path <- prepare_orderly_example("parameters", testing = TRUE)
+  path <- test_prepare_orderly_example("parameters", testing = TRUE)
   id <- orderly_run("example", parameters = list(a = 1, b = TRUE, c = "one"),
                     root = path, echo = FALSE)
   orderly_commit(id, root = path)
@@ -100,13 +101,7 @@ test_that("different parameter types are stored correctly", {
 
 
 test_that("avoid unserialisable parameters", {
-  skip_on_cran_windows()
-  path <- prepare_orderly_example("parameters", testing = TRUE)
   t <- Sys.Date()
-  id <- orderly_run("example", parameters = list(a = t, b = TRUE, c = "one"),
-                    root = path, echo = FALSE)
-  expect_error(orderly_commit(id, root = path),
-               "Unsupported parameter type")
   expect_error(report_db_parameter_type(t), "Unsupported parameter type")
   expect_error(report_db_parameter_serialise(t), "Unsupported parameter type")
 })
@@ -118,8 +113,8 @@ test_that("dialects", {
   p <- report_db_schema_read(NULL, "postgres")
   expect_false(isTRUE(all.equal(s, p)))
 
-  path <- prepare_orderly_example("minimal")
-  config <- orderly_config(path)
+  path <- test_prepare_orderly_example("minimal")
+  config <- orderly_config_$new(path)
   con <- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
   on.exit(DBI::dbDisconnect(con))
   expect_error(report_db_init_create(con, config, "postgres"),
@@ -137,7 +132,7 @@ test_that("dialects", {
 
 test_that("sources are listed in db", {
   skip_on_cran_windows()
-  path <- prepare_orderly_example("demo")
+  path <- test_prepare_orderly_example("demo")
   id <- orderly_run("other", root = path, parameters = list(nmin = 0),
                     echo = FALSE)
   orderly_commit(id, root = path)
@@ -181,7 +176,7 @@ test_that("backup", {
 
 test_that("db includes custom fields", {
   skip_on_cran_windows()
-  path <- prepare_orderly_example("demo")
+  path <- test_prepare_orderly_example("demo")
   id <- orderly_run("minimal", root = path, echo = FALSE)
   orderly_commit(id, root = path)
   con <- orderly_db("destination", root = path)
@@ -198,11 +193,13 @@ test_that("db includes custom fields", {
 
 test_that("db includes file information", {
   skip_on_cran_windows()
-  path <- prepare_orderly_example("demo")
+  path <- test_prepare_orderly_example("demo")
   id <- orderly_run("multifile-artefact", root = path, echo = FALSE)
   p <- orderly_commit(id, root = path)
-  h1 <- hash_files(file.path(path, "src", "multifile-artefact", "orderly.yml"), FALSE)
-  h2 <- hash_files(file.path(path, "src", "multifile-artefact", "script.R"), FALSE)
+  h1 <- hash_files(
+    file.path(path, "src", "multifile-artefact", "orderly.yml"), FALSE)
+  h2 <- hash_files(
+    file.path(path, "src", "multifile-artefact", "script.R"), FALSE)
   con <- orderly_db("destination", root = path)
   on.exit(DBI::dbDisconnect(con))
 
@@ -245,4 +242,329 @@ test_that("db includes file information", {
                data_frame(hash = c(h1, h2,
                                    artefact_hash),
                           size = file_size(file.path(p, filenames))))
+})
+
+
+test_that("connect to database instances", {
+  path <- test_prepare_orderly_example("minimal")
+  p <- file.path(path, "orderly_config.yml")
+  writeLines(c(
+    "database:",
+    "  source:",
+    "    driver: RSQLite::SQLite",
+    "    args:",
+    "      dbname: source.sqlite",
+    "    instances:",
+    "      staging:",
+    "        dbname: staging.sqlite",
+    "      production:",
+    "        dbname: production.sqlite"),
+    p)
+
+  f <- function(x) {
+    basename(x$source@dbname)
+  }
+  expect_equal(
+    f(orderly_db("source", root = path)),
+    "staging.sqlite")
+  expect_equal(
+    f(orderly_db("source", root = path, instance = "staging")),
+    "staging.sqlite")
+  expect_equal(
+    f(orderly_db("source", root = path, instance = "production")),
+    "production.sqlite")
+})
+
+
+test_that("db instance select", {
+  config_db <- list(
+    x = list(
+      driver = c("RSQLite", "SQLite"),
+      args = list(name = "a"),
+      instances = list(
+        a = list(name = "a"),
+        b = list(name = "b"))),
+    y = list(
+      driver = c("RSQLite", "SQLite"),
+      args = list(name = "y")))
+
+  config_db_a <- modifyList(config_db, list(x = list(instance = "a")))
+  config_db_b <- modifyList(config_db, list(x = list(args = list(name = "b"),
+                                                     instance = "b")))
+
+  ## The happy paths:
+  expect_identical(db_instance_select(NULL, config_db), config_db_a)
+
+  expect_equal(db_instance_select("a", config_db), config_db_a)
+  expect_equal(db_instance_select("b", config_db), config_db_b)
+
+  expect_equal(db_instance_select(c(x = "a"), config_db), config_db_a)
+  expect_equal(db_instance_select(c(x = "b"), config_db), config_db_b)
+
+  expect_error(db_instance_select("c", config_db),
+               "Invalid instance 'c' for database 'x'")
+  expect_error(db_instance_select(c(x = "c"), config_db),
+               "Invalid instance: 'c' for 'x'")
+  expect_error(db_instance_select(c(z = "a"), config_db),
+               "Invalid database name 'z' in provided instance")
+})
+
+
+test_that("db instance select with two instanced databases", {
+  config_db <- list(
+    x = list(
+      driver = c("RSQLite", "SQLite"),
+      args = list(name = "b"),
+      instances = list(
+        b = list(name = "b"),
+        a = list(name = "a"))),
+    y = list(
+      driver = c("RSQLite", "SQLite"),
+      args = list(name = "c"),
+      instances = list(
+        c = list(name = "c"),
+        a = list(name = "a"))))
+
+  config_db_aa <- modifyList(config_db,
+                             list(x = list(args = list(name = "a"),
+                                           instance = "a"),
+                                  y = list(args = list(name = "a"),
+                                           instance = "a")))
+  config_db_bc <- modifyList(config_db, list(x = list(instance = "b"),
+                                             y = list(instance = "c")))
+  config_db_ac <- modifyList(config_db,
+                             list(x = list(args = list(name = "a"),
+                                           instance = "a"),
+                                  y = list(args = list(name = "c"),
+                                           instance = "c")))
+
+  ## The happy paths:
+  expect_identical(db_instance_select(NULL, config_db), config_db_bc)
+
+  expect_equal(db_instance_select("a", config_db), config_db_aa)
+  expect_equal(db_instance_select(c(x = "a", y = "a"), config_db),
+               config_db_aa)
+  expect_equal(db_instance_select(c(x = "b", y = "c"), config_db),
+               config_db_bc)
+  expect_equal(db_instance_select(c(x = "a"), config_db), config_db_ac)
+
+  ## Some error paths:
+  expect_error(db_instance_select("f", config_db),
+               "Invalid instance 'f' for databases 'x', 'y'")
+  expect_error(db_instance_select(c(x = "f", y = "g"), config_db),
+               "Invalid instances: 'f' for 'x', 'g' for 'y'")
+  expect_error(db_instance_select(c(z = "a"), config_db),
+               "Invalid database name 'z' in provided instance")
+})
+
+
+test_that("db instance select rejects instance when no dbs support it", {
+  config_db <- list(
+    x = list(
+      driver = c("RSQLite", "SQLite"),
+      args = list(name = "a")),
+    y = list(
+      driver = c("RSQLite", "SQLite"),
+      args = list(name = "b")))
+
+  expect_identical(db_instance_select(NULL, config_db), config_db)
+  expect_error(db_instance_select("a", config_db),
+               "Can't specify 'instance' with no databases supporting it")
+})
+
+
+test_that("Create and verify tags on startup", {
+  root <- test_prepare_orderly_example("minimal")
+  append_lines(c("tags:", "  - tag1", "  - tag2"),
+               file.path(root, "orderly_config.yml"))
+  con <- orderly_db("destination", root = root)
+  expect_equal(DBI::dbReadTable(con, "tag"),
+               data_frame(id = c("tag1", "tag2")))
+  DBI::dbDisconnect(con)
+  append_lines("  - tag3", file.path(root, "orderly_config.yml"))
+  expect_error(
+    orderly_db("destination", root = root),
+    "tags have changed: rebuild with orderly::orderly_rebuild()",
+    fixed = TRUE)
+  orderly_rebuild(root)
+
+  con <- orderly_db("destination", root = root)
+  expect_equal(DBI::dbReadTable(con, "tag"),
+               data_frame(id = c("tag1", "tag2", "tag3")))
+  DBI::dbDisconnect(con)
+})
+
+
+test_that("Add tags to db", {
+  root <- test_prepare_orderly_example("minimal")
+  append_lines(c("tags:", "  - tag1", "  - tag2"),
+               file.path(root, "orderly_config.yml"))
+  append_lines(c("tags:", "  - tag1"),
+               file.path(root, "src", "example", "orderly.yml"))
+  id <- orderly_run("example", root = root, echo = FALSE)
+  p <- orderly_commit(id, root = root)
+
+  con <- orderly_db("destination", root)
+  on.exit(DBI::dbDisconnect(con))
+  expect_equal(
+    DBI::dbReadTable(con, "report_version_tag"),
+    data_frame(id = 1, report_version = id, tag = "tag1"))
+})
+
+test_that("add batch info to db", {
+  path <- test_prepare_orderly_example("parameters", testing = TRUE)
+
+  params <- data_frame(
+    a = c("one", "two", "three"),
+    b = c(1, 2, 3)
+  )
+  batch_id <- ids::random_id()
+  mockery::stub(orderly_batch, "ids::random_id", batch_id)
+  ids <- orderly_batch("example", parameters = params,
+                       root = path, echo = FALSE)
+  p <- lapply(ids, function(id) {
+    orderly_commit(id, root = path)
+  })
+
+  con <- orderly_db("destination", path)
+  on.exit(DBI::dbDisconnect(con))
+  expect_equal(
+    DBI::dbReadTable(con, "report_batch"),
+    data_frame(id = batch_id))
+  expect_equal(
+    DBI::dbReadTable(con, "report_version_batch"),
+    data_frame(report_version = ids, report_batch = rep(batch_id, 3)))
+})
+
+
+
+## Regression test for vimc-3652
+test_that("trailing slash in report name is tolerated", {
+  path <- test_prepare_orderly_example("minimal")
+  id <- orderly_run("src/example/", root = path, echo = FALSE)
+  expect_error(orderly_commit(id, root = path), NA)
+})
+
+
+test_that("db includes elapsed time", {
+  skip_on_cran_windows()
+  path <- test_prepare_orderly_example("minimal")
+  id <- orderly_run("example", root = path, echo = FALSE)
+  p <- orderly_commit(id, root = path)
+  con <- orderly_db("destination", root = path)
+  on.exit(DBI::dbDisconnect(con))
+  d <- DBI::dbReadTable(con, "report_version")
+  expect_true(d$elapsed > 0)
+  expect_equal(d$elapsed,
+               readRDS(path_orderly_run_rds(p))$meta$elapsed)
+})
+
+
+test_that("rebuild nonempty database with backup", {
+  skip_on_cran_windows()
+  path <- test_prepare_orderly_example("minimal")
+  id <- orderly_run("example", root = path, echo = FALSE)
+  orderly_commit(id, root = path)
+
+  con <- orderly_db("destination", path)
+  DBI::dbExecute(con, "UPDATE report_version SET published = 1")
+  DBI::dbDisconnect(con)
+
+  orderly_rebuild(path)
+
+  files <- dir(file.path(path, "backup/db"))
+  expect_equal(length(files), 1)
+  expect_match(files, "^orderly\\.sqlite\\.[0-9]{8}-[0-9]{6}$")
+
+  con1 <- orderly_db("destination", path)
+  con2 <- DBI::dbConnect(RSQLite::SQLite(),
+                         dbname = file.path(path, "backup/db", files))
+  expect_equal(
+    DBI::dbReadTable(con1, "report_version")$published, 0)
+  expect_equal(
+    DBI::dbReadTable(con2, "report_version")$published, 1)
+
+  DBI::dbDisconnect(con1)
+  DBI::dbDisconnect(con2)
+})
+
+test_that("db write collision", {
+  skip_on_cran()
+
+  path <- test_prepare_orderly_example("minimal")
+  id1 <- orderly_run("example", root = path, echo = FALSE)
+  id2 <- orderly_run("example", root = path, echo = FALSE)
+
+  orderly_commit(id1, root = path)
+  con <- orderly_db("destination", root = path)
+  on.exit(DBI::dbDisconnect(con))
+  DBI::dbExecute(con, "BEGIN IMMEDIATE")
+  DBI::dbExecute(con, "DELETE FROM file_artefact")
+
+  elapsed <- system.time(
+    testthat::expect_error(
+      orderly_commit(id2, root = path, timeout = 5),
+      "database is locked"))
+  expect_true(elapsed["elapsed"] > 5)
+
+  DBI::dbRollback(con)
+  p <- orderly_commit(id2, root = path)
+  ids <- DBI::dbGetQuery(con, "SELECT id from report_version")$id
+  expect_equal(length(ids), 2)
+  expect_setequal(ids, c(id1, id2))
+})
+
+test_that("db includes instance", {
+  skip_on_cran_windows()
+
+  path <- test_prepare_orderly_example("minimal")
+
+  p <- file.path(path, "orderly_config.yml")
+  writeLines(c(
+    "database:",
+    "  source:",
+    "    driver: RSQLite::SQLite",
+    "    instances:",
+    "      default:",
+    "        dbname: source.sqlite",
+    "      alternative:",
+    "        dbname: alternative.sqlite"),
+    p)
+
+  file.copy(file.path(path, "source.sqlite"),
+            file.path(path, "alternative.sqlite"))
+
+  id1 <- orderly_run("example", root = path, echo = FALSE)
+  id2 <- orderly_run("example", root = path, echo = FALSE,
+                     instance = "default")
+  id3 <- orderly_run("example", root = path, echo = FALSE,
+                     instance = "alternative")
+
+  orderly_commit(id1, root = path)
+  orderly_commit(id2, root = path)
+  orderly_commit(id3, root = path)
+  con <- orderly_db("destination", root = path)
+  d <- DBI::dbReadTable(con, "report_version_instance")
+  DBI::dbDisconnect(con)
+  expect_equal(d,
+               data_frame(id = c(1, 2, 3),
+                          report_version = c(id1, id2, id3),
+                          type = rep("source", 3),
+                          instance = c("default", "default", "alternative")))
+})
+
+
+test_that("Can cope when all fields are optional", {
+  path <- test_prepare_orderly_example("minimal")
+  append_lines(
+    c("fields:",
+      "  requester:",
+      "    required: false",
+      "  author:",
+      "    required: false"),
+    file.path(path, "orderly_config.yml"))
+  id <- orderly_run("example", root = path, echo = FALSE)
+  orderly_commit(id, root = path)
+  db <- orderly_db("destination", root = path)
+  expect_equal(nrow(DBI::dbReadTable(db, "report_version_custom_fields")), 0)
 })

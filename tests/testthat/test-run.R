@@ -1,84 +1,46 @@
 context("run")
 
-## Same as in read; we generate a report and then break it
 test_that("minimal", {
-  path <- prepare_orderly_example("minimal")
+  path <- test_prepare_orderly_example("minimal")
   on.exit(unlink(path, recursive = TRUE))
-
-  config <- orderly_config(path)
-  info <- recipe_read(file.path(path, "src/example"), config)
-  data <- recipe_data(config, info, NULL, new.env(parent = .GlobalEnv))
-  expect_is(data$dest$dat, "data.frame")
-
-  expect_error(
-    recipe_data(config, info, list(a = 1), new.env(parent = .GlobalEnv)),
-    "Extra parameters: 'a'")
-  expect_error(
-    recipe_data(config, info, NULL, NULL),
-    "Invalid input for 'dest'")
-
-  info$workdir <- tempfile()
-  dir.create(info$workdir)
-  expect_error(recipe_prepare_workdir(info),
-               "'workdir' must not exist")
-  unlink(info$workdir, recursive = TRUE)
 
   envir <- orderly_environment(NULL)
-  info <- recipe_prepare(config, "example")
-  res <- recipe_run(info, NULL, envir, config, echo = FALSE)
-  p <- file.path(path_draft(config$root), res$name, res$id)
-  files <- dir(p)
-  expect_true(file.exists(file.path(p, "orderly.yml")))
-  expect_true(file.exists(file.path(p, "orderly_run.rds")))
-  expect_true(file.exists(file.path(p, "script.R")))
-  expect_true(file.exists(file.path(p, "mygraph.png")))
+  id <- orderly_run("example", envir = envir, root = path, echo = FALSE)
+  expect_is(id, "character")
+  expect_match(id, "^[0-9]{8}-[0-9]{6}-[[:xdigit:]]{8}$")
+  expect_equal(ls(envir), "dat")
+  expect_is(envir$dat, "data.frame")
 
-  recipe_commit(p, config)
+  p <- orderly_commit(id, root = path)
+  expect_true(file.exists(p))
+  expect_true(same_path(p, file.path(path, "archive", "example", id)))
+  expect_setequal(
+    dir(p),
+    c("orderly.yml", "orderly_run.rds", "script.R", "mygraph.png"))
 })
 
-test_that("orderly_data", {
-  path <- prepare_orderly_example("minimal")
-  on.exit(unlink(path, recursive = TRUE))
-
-  d <- orderly_data("example", root = path)
-  expect_is(d, "environment")
-  expect_is(d$dat, "data.frame")
-
-  e1 <- new.env(parent = baseenv())
-  e <- orderly_data("example", root = path, envir = e1)
-  expect_identical(e, e1)
-
-  expect_identical(e$dat, d$dat)
-})
 
 test_that("fail to create artefact", {
-  path <- prepare_orderly_example("minimal")
+  path <- test_prepare_orderly_example("minimal")
   on.exit(unlink(path, recursive = TRUE))
-  config <- orderly_config(path)
   writeLines("1 + 1", file.path(path, "src/example/script.R"))
-  info <- recipe_read(file.path(path, "src/example"), config)
-  envir <- orderly_environment(NULL)
-  info <- recipe_prepare(config, "example")
-  expect_error(recipe_run(info, NULL, envir, config = config, echo = FALSE),
+  expect_error(orderly_run("example", root = path, echo = FALSE),
                "Script did not produce expected artefacts: mygraph.png")
 })
 
 test_that("leave device open", {
-  path <- prepare_orderly_example("minimal")
+  path <- test_prepare_orderly_example("minimal")
   on.exit(unlink(path, recursive = TRUE))
-  config <- orderly_config(path)
   txt <- readLines(file.path(path, "src/example/script.R"))
   writeLines(txt[!grepl("dev.off()", txt, fixed = TRUE)],
              file.path(path, "src/example/script.R"))
-  info <- recipe_read(file.path(path, "src/example"), config)
-  envir <- orderly_environment(NULL)
-  info <- recipe_prepare(config, "example")
-  expect_error(recipe_run(info, NULL, envir, config = config, echo = FALSE),
+  expect_error(orderly_run("example", root = path, echo = FALSE),
                "Report left 1 device open")
+  expect_false(file.exists("mygraph.png"))
 })
 
 test_that("close too many devices", {
-  path <- prepare_orderly_example("minimal")
+  path <- test_prepare_orderly_example("minimal")
   png(tempfile())
   n <- length(dev.list())
   on.exit({
@@ -88,21 +50,17 @@ test_that("close too many devices", {
     }
   })
 
-  config <- orderly_config(path)
   txt <- readLines(file.path(path, "src/example/script.R"))
   writeLines(c(txt, "dev.off()"), file.path(path, "src/example/script.R"))
-  info <- recipe_read(file.path(path, "src/example"), config)
-  envir <- orderly_environment(NULL)
-  info <- recipe_prepare(config, "example")
-  config <- orderly_config(path)
-  expect_error(recipe_run(info, NULL, envir, config = config, echo = FALSE),
+  expect_error(orderly_run("example", root = path, echo = FALSE),
                "Report closed 1 more devices than it opened")
 })
 
 test_that("sink imbalance", {
+  skip_on_cran()
   skip_on_cran_windows()
-  path <- prepare_orderly_example("minimal")
-  config <- orderly_config(path)
+  path <- test_prepare_orderly_example("minimal")
+  config <- orderly_config_$new(path)
   path_script <- file.path(path, "src/example/script.R")
   txt <- readLines(path_script)
   writeLines(c("sink('somefile', split = TRUE)", txt), path_script)
@@ -118,7 +76,7 @@ test_that("sink imbalance", {
     "Report left 1 sink open")
 
   p <- tempfile()
-  sink(p, split = TRUE)
+  sink(p, split = FALSE)
   writeLines(c("sink()", txt), path_script)
   withr::with_options(
     list(orderly.nolog = TRUE),
@@ -136,8 +94,8 @@ test_that("leave connection open", {
   ## the connection into the environment so that it will not be
   ## garbage collected.
   e <- new.env(parent = .GlobalEnv)
-  path <- prepare_orderly_example("minimal")
-  config <- orderly_config(path)
+  path <- test_prepare_orderly_example("minimal")
+  config <- orderly_config_$new(path)
   path_script <- file.path(path, "src/example/script.R")
 
   writeLines(
@@ -152,7 +110,7 @@ test_that("leave connection open", {
   close(e$con)
 
   writeLines(
-    c('con <- file("mygraph.png", "w")', 'close(con)'),
+    c('con <- file("mygraph.png", "w")', "close(con)"),
     path_script)
 
   e <- new.env(parent = .GlobalEnv)
@@ -162,32 +120,9 @@ test_that("leave connection open", {
 })
 
 
-test_that("connection", {
-  path <- prepare_orderly_example("minimal")
-  on.exit(unlink(path, recursive = TRUE))
-
-  path_example <- file.path(path, "src", "example")
-  yml <- file.path(path_example, "orderly.yml")
-  txt <- readLines(yml)
-  dat <- list(connection = list(con = "source"))
-  writeLines(c(txt, yaml::as.yaml(dat)), yml)
-
-  config <- orderly_config(path)
-  info <- recipe_read(path_example, config)
-  expect_identical(info$connection, list("con" = "source"))
-
-  data <- orderly_data("example",
-                       envir = new.env(parent = .GlobalEnv),
-                       root = path)
-  expect_is(data$con, "SQLiteConnection")
-  expect_is(DBI::dbReadTable(data$con, "data"), "data.frame")
-  DBI::dbDisconnect(data$con)
-})
-
-
 test_that("connection is saved to db", {
   skip_on_cran_windows()
-  path <- prepare_orderly_example("minimal")
+  path <- test_prepare_orderly_example("minimal")
 
   id1 <- orderly_run("example", root = path, echo = FALSE)
   orderly_commit(id1, root = path)
@@ -210,7 +145,7 @@ test_that("connection is saved to db", {
 
 
 test_that("no data", {
-  path <- prepare_orderly_example("minimal")
+  path <- test_prepare_orderly_example("minimal")
   yml <- c("data: ~",
            "script: script.R",
            "artefacts:",
@@ -222,11 +157,6 @@ test_that("no data", {
   writeLines(yml, file.path(path_example, "orderly.yml"))
   writeLines(script, file.path(path_example, "script.R"))
 
-  data <- orderly_data("example",
-                       envir = new.env(parent = .GlobalEnv),
-                       root = path)
-  expect_equal(ls(data, all.names = TRUE), character(0))
-
   id <- orderly_run("example", root = path, echo = FALSE)
   p <- file.path(path_draft(path), "example", id, "data.rds")
   expect_true(file.exists(p))
@@ -235,7 +165,7 @@ test_that("no data", {
 
 test_that("use artefact", {
   skip_on_cran_windows()
-  path <- prepare_orderly_example("depends", testing = TRUE)
+  path <- test_prepare_orderly_example("depends", testing = TRUE)
 
   path_example <- file.path(path, "src", "example")
   path_depend <- file.path(path, "src", "depend")
@@ -243,11 +173,7 @@ test_that("use artefact", {
   path_orig <- file.path(path_draft(path), "example", id1, "data.rds")
   expect_true(file.exists(path_orig))
 
-  data <- orderly_data("depend",
-                       envir = new.env(parent = .GlobalEnv),
-                       root = path)
-  expect_identical(ls(data), character(0))
-  id2 <- orderly_run("depend", root = path, echo = FALSE)
+  id2 <- orderly_run("depend", root = path, echo = FALSE, use_draft = TRUE)
   path_previous <- file.path(path_draft(path), "depend", id2, "previous.rds")
   expect_true(file.exists(path_previous))
   expect_equal(hash_files(path_previous, FALSE),
@@ -259,7 +185,7 @@ test_that("use artefact", {
 
   ## Then rebuild the original:
   id3 <- orderly_run("example", root = path, echo = FALSE)
-  id4 <- orderly_run("depend", root = path, echo = FALSE)
+  id4 <- orderly_run("depend", root = path, echo = FALSE, use_draft = TRUE)
   path_orig2 <- file.path(path_draft(path), "example", id3, "data.rds")
   path_previous2 <- file.path(path_draft(path), "depend", id4, "previous.rds")
 
@@ -280,9 +206,9 @@ test_that("use artefact", {
 
 test_that("Can't commit report using nonexistant id", {
   skip_on_cran_windows()
-  path <- prepare_orderly_example("depends", testing = TRUE)
+  path <- test_prepare_orderly_example("depends", testing = TRUE)
   id1 <- orderly_run("example", root = path, echo = FALSE)
-  id2 <- orderly_run("depend", root = path, echo = FALSE)
+  id2 <- orderly_run("depend", root = path, echo = FALSE, use_draft = TRUE)
   unlink(file.path(path, "draft", "example", id1), recursive = TRUE)
   expect_error(orderly_commit(id2, root = path),
                "Report uses nonexistant id")
@@ -290,13 +216,14 @@ test_that("Can't commit report using nonexistant id", {
 
 test_that("resources", {
   skip_on_cran_windows()
-  path <- prepare_orderly_example("resources", testing = TRUE)
+  path <- test_prepare_orderly_example("resources", testing = TRUE)
   id <- orderly_run("use_resource", root = path, echo = FALSE)
   p <- file.path(path, "draft", "use_resource", id)
   expect_true(file.exists(file.path(p, "meta/data.csv")))
   p <- orderly_commit(id, root = path)
 
-  h <- hash_files(file.path(path, "src", "use_resource", "meta", "data.csv"), FALSE)
+  h <- hash_files(
+    file.path(path, "src", "use_resource", "meta", "data.csv"), FALSE)
 
   con <- orderly_db("destination", root = path)
   d <- DBI::dbGetQuery(
@@ -310,7 +237,7 @@ test_that("resources", {
 
 test_that("markdown", {
   skip_on_cran_windows()
-  path <- prepare_orderly_example("demo")
+  path <- test_prepare_orderly_example("demo")
 
   id <- orderly_run("html", root = path, echo = FALSE)
 
@@ -323,9 +250,8 @@ test_that("database is not loaded unless needed", {
   vars <- c(SOME_ENVVAR = "source.sqlite")
   path <- withr::with_envvar(
     vars,
-    prepare_orderly_example("nodb", testing = TRUE))
+    test_prepare_orderly_example("nodb", testing = TRUE))
 
-  expect_identical(as.list(orderly_data("example", root = path)), list())
   id <- orderly_run("example", root = path, echo = FALSE)
   expect_true(
     file.exists(file.path(path, "draft", "example", id, "mygraph.png")))
@@ -333,9 +259,10 @@ test_that("database is not loaded unless needed", {
 })
 
 test_that("id file", {
-  path <- prepare_orderly_example("minimal")
+  path <- test_prepare_orderly_example("minimal")
   tmp <- tempfile()
-  id <- orderly_run("example", root = path, id_file = tmp, echo = FALSE)
+  id <- orderly_run_internal("example", root = path, id_file = tmp,
+                             echo = FALSE)
   expect_true(file.exists(tmp))
   expect_equal(readLines(tmp), id)
 })
@@ -345,7 +272,7 @@ test_that("test mode artefacts", {
   owd <- getwd()
   on.exit(setwd(owd))
 
-  path <- prepare_orderly_example("minimal")
+  path <- test_prepare_orderly_example("minimal")
   p <- orderly_test_start("example", root = path)
 
   expect_false(orderly_test_check(p))
@@ -365,7 +292,7 @@ test_that("orderly_test_check requires test mode", {
 
 test_that("run with message", {
   skip_on_cran_windows()
-  path <- prepare_orderly_example("changelog", testing = TRUE)
+  path <- test_prepare_orderly_example("changelog", testing = TRUE)
   test_message <- "[label1] test"
   id <- orderly_run("example", root = path, echo = FALSE,
                     message = test_message)
@@ -381,13 +308,12 @@ test_that("run with message", {
 
 
 test_that("no unexpected artefact", {
-  path <- prepare_orderly_example("minimal")
-  tmp <- tempfile()
+  path <- test_prepare_orderly_example("minimal")
   path_example <- file.path(path, "src", "example")
   # we're not expecting an 'unexpected' message at this point
   # grab all messages...
   messages <- capture_messages(orderly_run("example", root = path,
-                                           id_file = tmp, echo = FALSE))
+                                           echo = FALSE))
   # ...make sure none of the messages contain "unexpected"
   expect_false(any(grep("unexpected", messages)))
 })
@@ -395,10 +321,10 @@ test_that("no unexpected artefact", {
 
 test_that("renamed dependencies are expected", {
   skip_on_cran_windows()
-  path <- prepare_orderly_example("depends", testing = TRUE)
+  path <- test_prepare_orderly_example("depends", testing = TRUE)
   orderly_run("example", root = path, echo = FALSE)
   messages <- capture_messages(
-    orderly_run("depend", root = path, echo = FALSE))
+    orderly_run("depend", root = path, echo = FALSE, use_draft = TRUE))
   expect_false(any(grep("unexpected", messages)))
 })
 
@@ -407,8 +333,7 @@ test_that("non-existent package", {
   # if logging is on this test will wait for user input, so turn off
   orderly_log_off()
   on.exit(orderly_log_on())
-  path <- prepare_orderly_example("minimal")
-  tmp <- tempfile()
+  path <- test_prepare_orderly_example("minimal")
   path_example <- file.path(path, "src", "example")
   yml_path <- file.path(path_example, "orderly.yml")
 
@@ -416,8 +341,7 @@ test_that("non-existent package", {
   write(sprintf("packages: %s", "non_existent_package"),
         file = yml_path, append = TRUE)
   # has orderly detected that the package does not exist>
-  expect_error(orderly_run("example", root = path, id_file = tmp,
-                           echo = FALSE),
+  expect_error(orderly_run("example", root = path, echo = FALSE),
                "Missing packages: 'non_existent_package'")
 })
 
@@ -425,8 +349,7 @@ test_that("multiple non-existent packages", {
   # if logging is on this test will wait for user input, so turn off
   orderly_log_off()
   on.exit(orderly_log_on())
-  path <- prepare_orderly_example("minimal")
-  tmp <- tempfile()
+  path <- test_prepare_orderly_example("minimal")
   path_example <- file.path(path, "src", "example")
   yml_path <- file.path(path_example, "orderly.yml")
 
@@ -436,19 +359,25 @@ test_that("multiple non-existent packages", {
   write(sprintf("  - %s", "non_existent_package_2"),
         file = yml_path, append = TRUE)
   # has orderly detected that the package does not exist>
-  expect_error(orderly_run("example", root = path, id_file = tmp,
-                           echo = FALSE),
+  expect_error(orderly_run("example", root = path, echo = FALSE),
                paste("Missing packages:",
                      "'non_existent_package', 'non_existent_package_2'"))
 })
 
 test_that("use multiple versions of an artefact", {
   skip_on_cran_windows()
-  path <- prepare_orderly_example("depends", testing = TRUE)
+  path <- test_prepare_orderly_example("depends", testing = TRUE)
 
   id1 <- orderly_run("example", root = path, echo = FALSE)
   id2 <- orderly_run("example", root = path, echo = FALSE)
+  orderly_commit(id1, root = path)
   orderly_commit(id2, root = path)
+
+  p <- file.path(path, "src", "depend2", "orderly.yml")
+  dat <- yaml_read(p)
+  dat$depends[[1]]$example$id <- id1
+  dat$depends[[2]]$example$id <- id2
+  yaml_write(dat, p)
 
   id3 <- orderly_run("depend2", root = path, echo = FALSE)
 
@@ -456,15 +385,13 @@ test_that("use multiple versions of an artefact", {
                   c("previous1.rds", "previous2.rds"))
   expect_true(all(file.exists(p1)))
 
-  p2 <- file.path(path, c("draft", "archive"), "example", c(id1, id2),
-                  "data.rds")
+  p2 <- file.path(path, "archive", "example", c(id1, id2), "data.rds")
   expect_equal(hash_files(p1, FALSE),
                hash_files(p2, FALSE))
 })
 
 test_that("required field OK", {
-  path <- prepare_orderly_example("minimal")
-  tmp <- tempfile()
+  path <- test_prepare_orderly_example("minimal")
   # we need to use an orderly config with required fields set so copy it over
   # this must have exactly two required fields
   file.copy("example_config.yml", file.path(path, "orderly_config.yml"),
@@ -475,21 +402,20 @@ test_that("required field OK", {
   yml_path <- file.path(path_example, "orderly.yml")
   minimal_yml <- readLines(yml_path)
   # get required fields out of config
-  config <- orderly_config(path)
+  config <- orderly_config_$new(path)
   req_fields <- config$fields$name[config$fields$required]
   # set required fields to correct type
   minimal_yml <- c(minimal_yml, sprintf("%s: %s", req_fields[1], "character"))
   minimal_yml <- c(minimal_yml, sprintf("%s: %s", req_fields[2], "character"))
   writeLines(minimal_yml, yml_path)
 
-  id <- orderly_run("example", root = path, id_file = tmp, echo = FALSE)
+  id <- orderly_run("example", root = path, echo = FALSE)
   p <- file.path(path_draft(path), "example", id, "mygraph.png")
   expect_true(file.exists(p))
 })
 
 test_that("missing required field", {
-  path <- prepare_orderly_example("minimal")
-  tmp <- tempfile()
+  path <- test_prepare_orderly_example("minimal")
   # we need to use an orderly config with required fields set so copy it over
   file.copy("example_config.yml", file.path(path, "orderly_config.yml"),
             overwrite = TRUE)
@@ -499,7 +425,7 @@ test_that("missing required field", {
   yml_path <- file.path(path_example, "orderly.yml")
   minimal_yml <- readLines(yml_path)
   # get required fields out of config
-  config <- orderly_config(path)
+  config <- orderly_config_$new(path)
   req_fields <- config$fields$name[config$fields$required]
   # iterate over the required fields...
   for (field in req_fields) {
@@ -511,19 +437,15 @@ test_that("missing required field", {
 
     # we are expecting an error message here
     if (length(missing_required) > 0) {
-      err_msg <- sprintf("Fields missing from .*: %s",
-                        paste(missing_required, collapse = ", ")
-                        )
-      expect_error(orderly_run("example", root = path, id_file = tmp,
-                               echo = FALSE),
+      err_msg <- sprintf("Fields missing from .*: '%s'", missing_required)
+      expect_error(orderly_run("example", root = path, echo = FALSE),
                    regexp = err_msg)
     }
   }
 })
 
 test_that("required field wrong type", {
-  path <- prepare_orderly_example("minimal")
-  tmp <- tempfile()
+  path <- test_prepare_orderly_example("minimal")
   # we need to use an orderly config with required fields set so copy it over
   # this must have exactly two required fields
   file.copy("example_config.yml", file.path(path, "orderly_config.yml"),
@@ -534,7 +456,7 @@ test_that("required field wrong type", {
   yml_path <- file.path(path_example, "orderly.yml")
   minimal_yml <- readLines(yml_path)
   # get required fields out of config
-  config <- orderly_config(path)
+  config <- orderly_config_$new(path)
   req_fields <- config$fields$name[config$fields$required]
   # add the second required to the yml with the wrong type
   minimal_yml <- c(minimal_yml, sprintf("%s: %s", req_fields[1], "character"))
@@ -543,14 +465,13 @@ test_that("required field wrong type", {
 
   # first required field wont give an error, the second will
   err_msg <- sprintf("'.*orderly.yml:%s' must be character", req_fields[2])
-  expect_error(orderly_run("example", root = path, id_file = tmp,
-                           echo = FALSE),
+  expect_error(orderly_run("example", root = path, echo = FALSE),
                regexp = err_msg)
 })
 
 
 test_that("commit failure", {
-  path <- prepare_orderly_example("minimal")
+  path <- test_prepare_orderly_example("minimal")
   on.exit(unlink(path, recursive = TRUE))
   expect_error(orderly_commit(new_report_id(), "example", path),
                "Did not find draft report example/")
@@ -558,7 +479,7 @@ test_that("commit failure", {
 
 
 test_that("can't commit failed run", {
-  path <- prepare_orderly_example("minimal")
+  path <- test_prepare_orderly_example("minimal")
   on.exit(unlink(path, recursive = TRUE))
 
   append_lines('stop("some error")',
@@ -573,7 +494,7 @@ test_that("can't commit failed run", {
 
 
 test_that("can't commit report twice", {
-  path <- prepare_orderly_example("minimal")
+  path <- test_prepare_orderly_example("minimal")
   on.exit(unlink(path, recursive = TRUE))
 
   id <- orderly_run("example", root = path, echo = FALSE)
@@ -585,7 +506,7 @@ test_that("can't commit report twice", {
 
 test_that("missing parameters throws an error", {
   skip_on_cran_windows()
-  path <- prepare_orderly_example("demo")
+  path <- test_prepare_orderly_example("demo")
   on.exit(unlink(path, recursive = TRUE))
 
   expect_error(orderly_run("other", root = path),
@@ -604,7 +525,7 @@ test_that("orderly_environment", {
 })
 
 test_that("modify one resource", {
-  path <- prepare_orderly_example("resources", testing = TRUE)
+  path <- test_prepare_orderly_example("resources", testing = TRUE)
   path_example <- file.path(path, "src", "use_resource")
   script_path <- file.path(path_example, "script.R")
 
@@ -619,7 +540,7 @@ test_that("modify one resource", {
 
 
 test_that("modify multiple resources", {
-  path <- prepare_orderly_example("resources", testing = TRUE)
+  path <- test_prepare_orderly_example("resources", testing = TRUE)
   path_example <- file.path(path, "src", "multiple_resources")
   script_path <- file.path(path_example, "script.R")
 
@@ -636,7 +557,7 @@ test_that("modify multiple resources", {
 
 test_that("delete a resource", {
   ## delete 1 resource
-  path <- prepare_orderly_example("resources", testing = TRUE)
+  path <- test_prepare_orderly_example("resources", testing = TRUE)
   path_example <- file.path(path, "src", "use_resource")
   script_path <- file.path(path_example, "script.R")
 
@@ -651,7 +572,7 @@ test_that("delete a resource", {
 
 
 test_that("delete multiple resources", {
-  path <- prepare_orderly_example("resources", testing = TRUE)
+  path <- test_prepare_orderly_example("resources", testing = TRUE)
   path_example <- file.path(path, "src", "multiple_resources")
   script_path <- file.path(path_example, "script.R")
 
@@ -671,15 +592,17 @@ test_that("delete multiple resources", {
 
 test_that("multiple resources", {
   skip_on_cran_windows()
-  path <- prepare_orderly_example("resources", testing = TRUE)
+  path <- test_prepare_orderly_example("resources", testing = TRUE)
   id <- orderly_run("multiple_resources", root = path, echo = FALSE)
   p <- file.path(path, "draft", "multiple_resources", id)
   expect_true(file.exists(file.path(p, "meta/data.csv")))
   expect_true(file.exists(file.path(p, "meta/data2.csv")))
   p <- orderly_commit(id, root = path)
 
-  h1 <- hash_files(file.path(path, "src", "multiple_resources", "meta", "data.csv"), FALSE)
-  h2 <- hash_files(file.path(path, "src", "multiple_resources", "meta", "data2.csv"), FALSE)
+  h1 <- hash_files(
+    file.path(path, "src", "multiple_resources", "meta", "data.csv"), FALSE)
+  h2 <- hash_files(
+    file.path(path, "src", "multiple_resources", "meta", "data2.csv"), FALSE)
 
   con <- orderly_db("destination", root = path)
   on.exit(DBI::dbDisconnect(con))
@@ -694,7 +617,7 @@ test_that("multiple resources", {
 
 
 test_that("producing a directory is an error", {
-  path <- prepare_orderly_example("minimal")
+  path <- test_prepare_orderly_example("minimal")
   on.exit(unlink(path, recursive = TRUE))
 
   writeLines(
@@ -708,7 +631,7 @@ test_that("producing a directory is an error", {
 
 test_that("can run report with a view", {
   skip_on_cran_windows()
-  path <- prepare_orderly_example("demo")
+  path <- test_prepare_orderly_example("demo")
   id <- orderly_run("view", root = path, echo = FALSE)
   orderly_commit(id, root = path)
   con <- orderly_db("destination", root = path)
@@ -720,7 +643,7 @@ test_that("can run report with a view", {
 
 test_that("can run a report from orderly with no database", {
   skip_on_cran_windows()
-  path <- prepare_orderly_example("db0", testing = TRUE)
+  path <- test_prepare_orderly_example("db0", testing = TRUE)
   id <- orderly_run("example", root = path, echo = FALSE)
   expect_true(file.exists(
     file.path(path, "draft", "example", id, "mygraph.png")))
@@ -731,7 +654,7 @@ test_that("can run a report from orderly with no database", {
 
 test_that("can run a report from orderly with one (named) database", {
   skip_on_cran_windows()
-  path <- prepare_orderly_example("db1", testing = TRUE)
+  path <- test_prepare_orderly_example("db1", testing = TRUE)
   id <- orderly_run("example", root = path, echo = FALSE)
   expect_true(file.exists(
     file.path(path, "draft", "example", id, "mygraph.png")))
@@ -742,7 +665,7 @@ test_that("can run a report from orderly with one (named) database", {
 
 test_that("can run a report from orderly with two databases", {
   skip_on_cran_windows()
-  path <- prepare_orderly_example("db2", testing = TRUE)
+  path <- test_prepare_orderly_example("db2", testing = TRUE)
   id <- orderly_run("example", root = path, echo = FALSE)
   expect_true(file.exists(
     file.path(path, "draft", "example", id, "mygraph.png")))
@@ -753,7 +676,7 @@ test_that("can run a report from orderly with two databases", {
 
 test_that("Can use connections with two databases", {
   skip_on_cran_windows()
-  path <- prepare_orderly_example("db2", testing = TRUE)
+  path <- test_prepare_orderly_example("db2", testing = TRUE)
   id <- orderly_run("connection", root = path, echo = FALSE)
   expect_true(file.exists(
     file.path(path, "draft", "connection", id, "mygraph.png")))
@@ -763,7 +686,7 @@ test_that("Can use connections with two databases", {
 
 
 test_that("prevent duplicate filenames", {
-  path <- prepare_orderly_example("depends", testing = TRUE)
+  path <- test_prepare_orderly_example("depends", testing = TRUE)
   id1 <- orderly_run("example", root = path, echo = FALSE)
 
   p <- file.path(path, "src", "depend", "orderly.yml")
@@ -773,13 +696,436 @@ test_that("prevent duplicate filenames", {
   file.create(file.path(path, "src", "depend", "previous.rds"))
 
   expect_error(
-    orderly_run("depend", root = path, echo = FALSE),
+    orderly_run("depend", root = path, echo = FALSE, use_draft = TRUE),
     "Orderly configuration implies duplicate files:\\s+- previous.rds:")
 })
 
 
 test_that("allow src/ in report name during run", {
-  path <- prepare_orderly_example("minimal")
+  path <- test_prepare_orderly_example("minimal")
   id <- orderly_run("src/example", root = path, echo = FALSE)
   expect_true(file.exists(file.path(path, "draft", "example", id)))
+})
+
+
+test_that("run with different database instance", {
+  path <- test_prepare_orderly_example("depends", testing = TRUE)
+
+  p <- file.path(path, "orderly_config.yml")
+  writeLines(c(
+    "database:",
+    "  source:",
+    "    driver: RSQLite::SQLite",
+    "    instances:",
+    "      default:",
+    "        dbname: source.sqlite",
+    "      alternative:",
+    "        dbname: alternative.sqlite"),
+    p)
+
+  file.copy(file.path(path, "source.sqlite"),
+            file.path(path, "alternative.sqlite"))
+
+  con <- orderly_db("source", root = path, instance = "alternative")
+  DBI::dbExecute(con$source, "DELETE from thing where id > 10")
+
+  id1 <- orderly_run("example", root = path, echo = FALSE)
+  id2 <- orderly_run("example", root = path, echo = FALSE,
+                     instance = "default")
+  id3 <- orderly_run("example", root = path, echo = FALSE,
+                     instance = "alternative")
+
+  f <- function(id) {
+    nrow(readRDS(file.path(path, "draft", "example", id, "data.rds")))
+  }
+  expect_equal(f(id1), 20)
+  expect_equal(f(id2), 20)
+  expect_equal(f(id3), 10)
+
+  g <- function(id) {
+    d <- readRDS(file.path(path, "draft", "example", id, "orderly_run.rds"))
+    d$meta$instance
+  }
+  expect_equal(g(id1), list(source = "default"))
+  expect_equal(g(id2), list(source = "default"))
+  expect_equal(g(id3), list(source = "alternative"))
+})
+
+
+test_that("Require simple parameters", {
+  path <- test_prepare_orderly_example("parameters", testing = TRUE)
+
+  expect_error(
+    orderly_run("example", parameters = list(a = Sys.Date(), b = TRUE),
+                root = path, echo = FALSE),
+    "Invalid parameters: 'a' - must be character, numeric or logical")
+  expect_error(
+    orderly_run("example", parameters = list(a = NULL, b = 1:2),
+                root = path, echo = FALSE),
+    "Invalid parameters: 'a', 'b' - must be scalar")
+})
+
+
+test_that("preserve tags in metadata", {
+  root <- test_prepare_orderly_example("minimal")
+  append_lines(c("tags:", "  - tag1", "  - tag2"),
+               file.path(root, "orderly_config.yml"))
+  append_lines(c("tags:", "  - tag1"),
+               file.path(root, "src", "example", "orderly.yml"))
+
+  id <- orderly_run("example", root = root, echo = FALSE)
+  d <- readRDS(path_orderly_run_rds(file.path(root, "draft", "example", id)))
+  expect_equal(d$meta$tags, "tag1")
+})
+
+
+test_that("Pass tags during run", {
+  root <- test_prepare_orderly_example("minimal")
+  append_lines(c("tags:", "  - tag1", "  - tag2"),
+               file.path(root, "orderly_config.yml"))
+  append_lines(c("tags:", "  - tag1"),
+               file.path(root, "src", "example", "orderly.yml"))
+
+  ## Add new tag
+  id <- orderly_run("example", root = root, echo = FALSE, tags = "tag2")
+  d <- readRDS(path_orderly_run_rds(file.path(root, "draft", "example", id)))
+  expect_equal(d$meta$tags, c("tag1", "tag2"))
+
+  ## Ignore already present tag
+  id <- orderly_run("example", root = root, echo = FALSE, tags = "tag1")
+  d <- readRDS(path_orderly_run_rds(file.path(root, "draft", "example", id)))
+  expect_equal(d$meta$tags, "tag1")
+
+  ## Error on unknown tag
+  expect_error(
+    orderly_run("example", root = root, echo = FALSE, tags = "tag3"),
+    "Unknown tag: 'tag3'")
+  expect_error(
+    orderly_run("example", root = root, echo = FALSE, tags = 1),
+    "'tags' must be character")
+})
+
+
+test_that("orderly_envir is available during run", {
+  path <- test_prepare_orderly_example("minimal")
+  p <- file.path(path, "src", "example")
+  writeLines(c("MY_A: a", "ORDERLY_B: b"), file.path(path, "orderly_envir.yml"))
+  append_lines('writeLines(Sys.getenv("MY_A"), "env")',
+               file.path(p, "script.R"))
+  id <- orderly_run("example", root = path, echo = FALSE)
+
+  p <- file.path(path, "draft", "example", id)
+  expect_equal(readLines(file.path(p, "env")), "a")
+  expect_equal(readRDS(path_orderly_run_rds(p))$env,
+               list(ORDERLY_B = "b"))
+})
+
+test_that("Use secrets in report", {
+  srv <- vaultr::vault_test_server()
+  cl <- srv$client()
+  cl$write("/secret/users/alice", list(password = "ALICE"))
+  cl$write("/secret/users/bob", list(password = "BOB"))
+
+  path <- test_prepare_orderly_example("minimal")
+  append_lines(
+    c("vault:",
+      paste("  addr:", srv$addr),
+      paste("  login: token"),
+      paste("  token:", srv$token)),
+    file.path(path, "orderly_config.yml"))
+
+  append_lines(c("secrets:",
+                 "  alice: /secret/users/alice:password",
+                 "  bob: /secret/users/bob:password"),
+               file.path(path, "src", "example", "orderly.yml"))
+
+  append_lines(
+    'writeLines(c(alice, bob), "passwords")',
+    file.path(path, "src", "example", "script.R"))
+
+  id <- orderly_run("example", root = path, echo = FALSE)
+  expect_equal(
+    readLines(file.path(path, "draft", "example", id, "passwords")),
+    c("ALICE", "BOB"))
+})
+
+test_that("can use environment variables in report", {
+  path <- test_prepare_orderly_example("minimal")
+
+  append_lines(
+    c("environment:",
+      paste("  data_path: EXTRA_DATA_PATH"),
+      paste("  example_var: EXAMPLE_VAR")),
+    file.path(path, "src", "example", "orderly.yml"))
+
+  append_lines(
+    'writeLines(c(data_path, example_var), "env_vars")',
+    file.path(path, "src", "example", "script.R"))
+
+  expect_error(orderly_run("example", root = path),
+               "Environment variable 'EXTRA_DATA_PATH' is not set
+\t(used in orderly.yml:environment:data_path)", fixed = TRUE)
+
+  ## On windows if env variable is empty then windows will return NA from call
+  ## to Sys.getenv
+  if (is_windows()) {
+    expected_err <- "Environment variable 'EXAMPLE_VAR' is not set
+\t(used in orderly.yml:environment:example_var)"
+  } else {
+    expected_err <- "Environment variable 'EXAMPLE_VAR' is empty
+\t(used in orderly.yml:environment:example_var)"
+  }
+
+  data_path <- tempfile()
+  withr::with_envvar(
+    c("EXTRA_DATA_PATH" = data_path,
+      "EXAMPLE_VAR" = ""),
+    expect_error(orderly_run("example", root = path),
+                 expected_err, fixed = TRUE)
+  )
+
+  withr::with_envvar(
+    c("EXTRA_DATA_PATH" = data_path,
+      "EXAMPLE_VAR" = "example value"),
+    id <- orderly_run("example", root = path, echo = FALSE)
+  )
+  expect_equal(
+    readLines(file.path(path, "draft", "example", id, "env_vars")),
+    c(data_path, "example value"))
+})
+
+
+test_that("pick up name from the working directory", {
+  skip_on_cran_windows()
+  path <- test_prepare_orderly_example("minimal")
+
+  id <- withr::with_dir(
+    file.path(path, "src", "example"),
+    orderly_run(echo = FALSE))
+  expect_true(file.exists(file.path(path, "draft", "example", id)))
+})
+
+test_that("orderly_run can capture messages", {
+  path <- test_prepare_orderly_example("minimal")
+  on.exit(unlink(path, recursive = TRUE))
+
+  id <- orderly_run_internal("example", root = path, echo = FALSE,
+                             capture_log = TRUE, commit = TRUE)
+
+  archive_logs <- path_orderly_log(file.path(path, "archive", "example", id))
+  expect_true(file.exists(archive_logs))
+  log <- readLines(archive_logs)
+  expect_true("[ name       ]  example" %in% log)
+  expect_true(any(grepl("^\\[ commit     \\]  .*", log)))
+})
+
+test_that("logs from failed runs can still be written to file", {
+  path <- test_prepare_orderly_example("minimal")
+  on.exit(unlink(path, recursive = TRUE))
+
+  append_lines(
+    c("f <- function() g()",
+      "g <- function() h()",
+      "h <- function() stop('some error')",
+      "f()"),
+    file.path(path, "src", "example", "script.R"))
+
+  expect_error(orderly_run_internal("example", root = path, echo = FALSE,
+                                    capture_log = TRUE),
+               "some error")
+  id <- dir(file.path(path, "draft", "example"))
+
+  draft_logs <- file.path(path, "draft", "example", id, "orderly.log")
+  expect_true(file.exists(draft_logs))
+  log <- readLines(draft_logs)
+  expect_true("[ name       ]  example" %in% log)
+
+  ## Error is found
+  expect_match(log, "Error: some error", all = FALSE)
+
+  ## traceback preserved
+  expect_match(log, "f()", all = FALSE, fixed = TRUE)
+  expect_match(log, "g()", all = FALSE, fixed = TRUE)
+})
+
+
+test_that("run errors if given extra parameters", {
+  path <- test_prepare_orderly_example("demo")
+  expect_error(
+    orderly_run("minimal", list(a = 1), root = path),
+    "Extra parameters: 'a'")
+  expect_error(
+    orderly_run("other", list(nmin = 1, a = 1), root = path),
+    "Extra parameters: 'a'")
+})
+
+
+test_that("parameters passed to dependency resolution include defaults", {
+  dat <- prepare_orderly_query_example()
+  root <- dat$root
+  ids <- dat$ids
+
+  config <- orderly_config_$new(root)
+
+  p <- file.path(root, "src", "use_dependency", "orderly.yml")
+  txt <- readLines(p)
+  txt <- sub("latest", "latest(parameter:nmin < x)", txt, fixed = TRUE)
+  txt <- c(txt, c("parameters:",
+                  "  x:",
+                  "    default: 0.25"))
+  writeLines(txt, p)
+
+  ## Use default
+  id <- orderly_run("use_dependency", echo = FALSE, root = root)
+  info <- readRDS(
+    path_orderly_run_rds(file.path(root, "draft", "use_dependency", id)))
+  expect_equal(info$meta$depends$id, dat$ids[[2]])
+
+  ## Override default
+  id <- orderly_run("use_dependency", list(x = 0.15), echo = FALSE, root = root)
+  info <- readRDS(
+    path_orderly_run_rds(file.path(root, "draft", "use_dependency", id)))
+  expect_equal(info$meta$depends$id, dat$ids[[1]])
+})
+
+test_that("failed run creates failed rds", {
+  path <- test_prepare_orderly_git_example()
+
+  append_lines('stop("some error")',
+               file.path(path[["local"]], "src", "minimal", "script.R"))
+  expect_error(orderly_run("minimal", root = path[["local"]], echo = FALSE),
+               "some error")
+  drafts <- orderly_list_drafts(root = path[["local"]], include_failed = TRUE)
+  expect_equal(nrow(drafts), 1)
+
+  draft_dir <- file.path(path_draft(path[["local"]]), drafts$name, drafts$id)
+  expect_true(file.exists(path_orderly_fail_rds(draft_dir)))
+
+  failed_rds <- readRDS(path_orderly_fail_rds(draft_dir))
+  expect_equal(names(failed_rds),
+               c("session_info", "time", "env", "git", "error", "meta",
+                 "archive_version"))
+
+  expect_s3_class(failed_rds$error$error, "simpleError")
+  expect_equal(failed_rds$error$error$message, "some error")
+  expect_true(length(failed_rds$error$trace) > 5)
+  expect_match(failed_rds$error$trace[length(failed_rds$error$trace)],
+               'stop\\("some error"\\)')
+
+  expect_equal(failed_rds$meta$id, drafts$id)
+  expect_equal(failed_rds$meta$name, "minimal")
+  expect_null(failed_rds$meta$parameters)
+  expect_true(!is.null(failed_rds$meta$elapsed))
+
+  expect_equal(failed_rds$archive_version, cache$current_archive_version)
+
+  expect_equal(failed_rds$git$branch, "master")
+  expect_equal(failed_rds$git$status, " M src/minimal/script.R")
+})
+
+test_that("fail during cleanup creates failed rds", {
+  path <- test_prepare_orderly_example("minimal")
+  on.exit(unlink(path, recursive = TRUE))
+
+  writeLines("1 + 1", file.path(path, "src/example/script.R"))
+  expect_error(orderly_run("example", root = path, echo = FALSE),
+               "Script did not produce expected artefacts: mygraph.png")
+
+  drafts <- orderly_list_drafts(root = path, include_failed = TRUE)
+  expect_equal(nrow(drafts), 1)
+
+  draft_dir <- file.path(path_draft(path), drafts$name, drafts$id)
+  expect_true(file.exists(path_orderly_fail_rds(draft_dir)))
+
+  failed_rds <- readRDS(path_orderly_fail_rds(draft_dir))
+  expect_equal(names(failed_rds),
+               c("session_info", "time", "env", "error", "meta",
+                 "archive_version"))
+  expect_equal(failed_rds$error$error$message,
+               "Script did not produce expected artefacts: mygraph.png")
+  expect_true(length(failed_rds$error$trace) > 5)
+  expect_match(failed_rds$error$trace[length(failed_rds$error$trace)],
+               "Script did not produce expected artefacts:")
+})
+
+test_that("message printed if run fails before working dir is set", {
+  path <- test_prepare_orderly_git_example()
+  ## git checkout happens before workdir is set, so we trigger an error there
+  expect_message(expect_error(
+    orderly_run_internal("minimal", root = path[["local"]],
+                         echo = FALSE, fetch = TRUE, ref = "123")),
+    "Can't save fail RDS, workdir not set")
+})
+
+test_that("orderly_run_internal writes fail rds on error", {
+  path <- test_prepare_orderly_example("minimal")
+  on.exit(unlink(path, recursive = TRUE))
+
+  append_lines(
+    c("f <- function() g()",
+      "g <- function() h()",
+      "h <- function() stop('some error')",
+      "f()"),
+    file.path(path, "src", "example", "script.R"))
+
+  expect_error(orderly_run_internal("example", root = path, echo = FALSE,
+                                    capture_log = TRUE),
+               "some error")
+
+  drafts <- orderly_list_drafts(root = path, include_failed = TRUE)
+  expect_equal(nrow(drafts), 1)
+
+  draft_dir <- file.path(path_draft(path), drafts$name, drafts$id)
+  expect_true(file.exists(path_orderly_fail_rds(draft_dir)))
+
+  failed_rds <- readRDS(path_orderly_fail_rds(draft_dir))
+  expect_equal(names(failed_rds),
+               c("session_info", "time", "env", "error", "meta",
+                 "archive_version"))
+  expect_equal(failed_rds$error$error$message, "some error")
+  expect_true(length(failed_rds$error$trace) > 5)
+  expect_match(failed_rds$error$trace[length(failed_rds$error$trace) - 3],
+               "f()")
+  expect_match(failed_rds$error$trace[length(failed_rds$error$trace) - 2],
+               "g()")
+  expect_match(failed_rds$error$trace[length(failed_rds$error$trace) - 1],
+               "h()")
+  expect_match(failed_rds$error$trace[length(failed_rds$error$trace)],
+               'stop\\("some error"\\)')
+})
+
+test_that("orderly_run_internal can save workflow metadata", {
+  path <- test_prepare_orderly_example("minimal")
+  tmp <- tempfile()
+  id <- orderly_run_internal("example", root = path, id_file = tmp,
+                             commit = TRUE, echo = FALSE,
+                             workflow_id = "123")
+  rds <- path_orderly_run_rds(file.path(path, "archive", "example", id))
+  expect_true(file.exists(rds))
+  dat <- readRDS(rds)
+  expect_equal(dat$meta$workflow, "123")
+
+  con <- orderly_db("destination", root = path)
+  on.exit(DBI::dbDisconnect(con))
+  workflow <- DBI::dbGetQuery(con, "SELECT * FROM workflow")
+  expect_equal(workflow, data_frame(id = "123"))
+  report_version_workflow <-
+    DBI::dbGetQuery(con, "SELECT * FROM report_version_workflow")
+  expect_equal(report_version_workflow, data_frame(report_version = id,
+                                                   workflow_id = "123"))
+
+  id2 <- orderly_run_internal("example", root = path, id_file = tmp,
+                             commit = TRUE, echo = FALSE,
+                             workflow_id = "123")
+  rds <- path_orderly_run_rds(file.path(path, "archive", "example", id2))
+  expect_true(file.exists(rds))
+  dat <- readRDS(rds)
+  expect_equal(dat$meta$workflow, "123")
+  workflow <- DBI::dbGetQuery(con, "SELECT * FROM workflow")
+  expect_equal(workflow, data_frame(id = "123"))
+  report_version_workflow <-
+    DBI::dbGetQuery(con, "SELECT * FROM report_version_workflow")
+  expect_equal(report_version_workflow,
+               data_frame(report_version = c(id, id2),
+                          workflow_id = c("123", "123")))
 })

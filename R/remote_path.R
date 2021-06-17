@@ -24,11 +24,11 @@
 ##'
 ##' @example man-roxygen/example-remote.R
 orderly_remote_path <- function(path, name = NULL) {
-  R6_orderly_remote_path$new(path, name)
+  orderly_remote_path_$new(path, name)
 }
 
 
-R6_orderly_remote_path <- R6::R6Class(
+orderly_remote_path_ <- R6::R6Class(
   "orderly_remote_path",
 
   public = list(
@@ -36,12 +36,12 @@ R6_orderly_remote_path <- R6::R6Class(
     name = NULL,
 
     initialize = function(path, name) {
-      assert_file_exists(path)
+      assert_file_exists(path, FALSE)
       path <- normalizePath(path, "/", mustWork = TRUE)
       if (!file.exists(path_orderly_config_yml(path))) {
         stop("Does not look like an orderly repository: ", squote(path))
       }
-      self$config <- orderly_config(path)
+      self$config <- orderly_config_$new(path)
       self$name <- name %||% self$config$root
       lockBinding(quote(config), self)
       lockBinding(quote(name), self)
@@ -56,11 +56,27 @@ R6_orderly_remote_path <- R6::R6Class(
       d$id[d$name == name]
     },
 
+    metadata = function(name, id) {
+      path_orderly_run_rds(file.path(path_archive(self$config$root), name, id))
+    },
+
     pull = function(name, id) {
       src <- file.path(path_archive(self$config$root), name, id)
       dest <- tempfile()
       copy_directory(src, dest, TRUE)
       dest
+    },
+
+    push = function(path) {
+      path_meta <- file.path(path, "orderly_run.rds")
+      stopifnot(file.exists(path_meta))
+
+      dat <- readRDS(path_meta)
+      name <- dat$meta$name
+      id <- dat$meta$id
+
+      dest <- file.path(path_archive(self$config$root), name, id)
+      copy_directory(path, dest, rollback_on_error = TRUE)
     },
 
     run = function(...) {
@@ -69,5 +85,16 @@ R6_orderly_remote_path <- R6::R6Class(
 
     url_report = function(name, id) {
       file.path(self$config$root, name, id, fsep = "/")
+    },
+
+    bundle_pack = function(name, parameters = NULL, instance = NULL) {
+      res <- orderly_bundle_pack(tempdir(), name, parameters = parameters,
+                                 instance = instance,
+                                 root = self$config, locate = FALSE)
+      res$path
+    },
+
+    bundle_import = function(path) {
+      orderly_bundle_import(path, root = self$config, locate = FALSE)
     }
   ))

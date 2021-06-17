@@ -46,11 +46,13 @@ test_that("resolve_env", {
   set.seed(1)
   v <- paste(sample(c(LETTERS, 0:9, "_"), 20, replace = TRUE), collapse = "")
   vv <- paste0("$", v)
-  expect_identical(resolve_env(v), list(v))
-  expect_error(resolve_env(vv),
-               sprintf("Environment variable '%s' is not set", v))
-  expect_identical(withr::with_envvar(setNames("value", v), resolve_env(vv)),
-                   list("value"))
+  expect_identical(resolve_env(c(x = v), "loc"), list(x = v))
+  expect_error(
+    resolve_env(c(x = vv), "loc"),
+    sprintf("Environment variable '%s' is not set.*used in loc:x", v))
+  expect_identical(
+    withr::with_envvar(setNames("value", v), resolve_env(c(x = vv), "loc")),
+    list(x = "value"))
 })
 
 
@@ -58,12 +60,13 @@ test_that("resolve_env skips non-scalars", {
   set.seed(1)
   v <- paste(sample(c(LETTERS, 0:9, "_"), 20, replace = TRUE), collapse = "")
   vv <- paste0("$", v)
-  expect_identical(resolve_env(v), list(v))
+  expect_identical(resolve_env(c(x = v), "loc"), list(x = v))
 
   env <- setNames("value", v)
   expect_identical(
-    withr::with_envvar(env,
-                       resolve_env(list(a = vv, b = list(a = 1, b = 2)))),
+    withr::with_envvar(
+      env,
+      resolve_env(list(a = vv, b = list(a = 1, b = 2)), "loc")),
     list(a = "value", b = list(a = 1, b = 2)))
 })
 
@@ -90,7 +93,7 @@ test_that("secrets", {
   cl$write("/secret/users/bob", list(password = "BOB"))
 
   config <- list(root = tempfile(),
-                 vault_server = srv$addr)
+                 vault = list(addr = srv$addr))
 
   x <- list(name = "alice",
             password = "VAULT:/secret/users/alice:password")
@@ -114,6 +117,23 @@ test_that("secrets", {
   })
 })
 
+test_that("secets and expanded vault definition", {
+  srv <- vaultr::vault_test_server()
+  cl <- srv$client()
+  cl$write("/secret/users/alice", list(password = "ALICE"))
+  cl$write("/secret/users/bob", list(password = "BOB"))
+
+  config <- list(root = tempfile(),
+                 vault = list(
+                   addr = srv$addr,
+                   login = "token",
+                   token = srv$token))
+  x <- list(name = "alice",
+            password = "VAULT:/secret/users/alice:password")
+  expect_equal(resolve_secrets(x, config),
+               list(name = "alice", password = "ALICE"))
+})
+
 test_that("resolve secret env", {
   srv <- vaultr::vault_test_server()
   cl <- srv$client()
@@ -121,21 +141,56 @@ test_that("resolve secret env", {
   cl$write("/secret/users/bob", list(password = "BOB"))
 
   config <- list(root = tempfile(),
-                 vault_server = srv$addr)
+                 vault = list(addr = srv$addr,
+                              login = "token",
+                              token = srv$token))
 
   x <- list(user = "$ORDERLY_USER",
             password = "$ORDERLY_PASSWORD",
             other = "string")
 
   vars <- c("ORDERLY_PASSWORD" = "VAULT:/secret/users/alice:password",
-            "ORDERLY_USER" = "alice",
-            "VAULTR_AUTH_METHOD" = "token",
-            "VAULT_TOKEN" = srv$token)
+            "ORDERLY_USER" = "alice")
 
   res <- withr::with_envvar(vars, resolve_driver_config(x, config))
   expect_equal(res,
                list(user = "alice", password = "ALICE", other = "string"))
 })
+
+
+test_that("vault configuration honours environment variables", {
+  srv <- vaultr::vault_test_server()
+  cl <- srv$client()
+  cl$write("/secret/users/alice", list(password = "ALICE"))
+  cl$write("/secret/users/bob", list(password = "BOB"))
+
+  path <- test_prepare_orderly_example("minimal")
+  path_config <- file.path(path, "orderly_config.yml")
+  text <- readLines(path_config)
+
+  text <- c(text, c("vault:",
+                    "  addr: $ORDERLY_VAULT_ADDR",
+                    "  login: token",
+                    "  token: $ORDERLY_VAULT_TOKEN"))
+  writeLines(text, path_config)
+
+  x <- list(name = "alice",
+            password = "VAULT:/secret/users/alice:password")
+  config <- orderly_config_$new(path)
+  ## Environment variable not resolved yet:
+  expect_equal(config$vault$addr, "$ORDERLY_VAULT_ADDR")
+  ## Sensible error if not set:
+  expect_error(
+    resolve_secrets(x, config),
+    paste0("Environment variable 'ORDERLY_VAULT_ADDR' is not set.*",
+           "used in orderly_config.yml:vault:addr"))
+  ## Resolve if set
+  env <- list(ORDERLY_VAULT_ADDR = srv$addr, ORDERLY_VAULT_TOKEN = srv$token)
+  yaml_write(env, file.path(path, "orderly_envir.yml"))
+  expect_equal(resolve_secrets(x, config),
+               list(name = "alice", password = "ALICE"))
+})
+
 
 test_that("which_max_time", {
   times <- as.list(Sys.time() + sort(rnorm(3, 0, 20)))
@@ -145,7 +200,7 @@ test_that("which_max_time", {
 
 test_that("git", {
   skip_if_no_git()
-  skip_on_appveyor() # needs some git work
+  skip_on_windows_ci()
 
   path <- tempfile()
   code <- system2("git", c("init", path), stdout = FALSE, stderr = FALSE)
@@ -208,7 +263,7 @@ test_that("canonical case: single file", {
   root <- tempfile()
   dir.create(root)
   path <- "a"
-  PATH <- toupper(path)
+  PATH <- toupper(path) # nolint
   full <- file.path(root, path)
 
   dir.create(dirname(full), FALSE, TRUE)
@@ -245,7 +300,7 @@ test_that("canonical case: relative path", {
   root <- tempfile()
   dir.create(root)
   path <- file.path("a", "b", "c")
-  PATH <- toupper(path)
+  PATH <- toupper(path) # nolint
   full <- file.path(root, path)
 
   dir.create(dirname(full), FALSE, TRUE)
@@ -284,7 +339,7 @@ test_that("canonical case: absolute path", {
   dir.create(dirname(path), FALSE, TRUE)
   file.create(path)
   path <- normalizePath(path, "/")
-  PATH <- toupper(path)
+  PATH <- toupper(path) # nolint
   if (is_windows()) {
     ## On windows, use upper case drive letters here:
     path <- paste0(toupper(substr(path, 1, 1)),
@@ -348,15 +403,33 @@ test_that("abbreviate", {
 })
 
 
-test_that("Sys_getenv", {
+test_that("sys_getenv", {
   withr::with_envvar(
     c("SOME_VAR" = NA_character_), {
-      expect_error(Sys_getenv("SOME_VAR"),
-                   "Environment variable 'SOME_VAR' is not set")
-      expect_null(Sys_getenv("SOME_VAR", FALSE))
-      expect_identical(Sys_getenv("SOME_VAR", FALSE, NA_character_),
+      expect_error(
+        sys_getenv("SOME_VAR", "loc"),
+        "Environment variable 'SOME_VAR' is not set.*used in loc")
+      expect_null(sys_getenv("SOME_VAR", "loc", FALSE))
+      expect_identical(sys_getenv("SOME_VAR", "loc", FALSE, NA_character_),
                        NA_character_)
     })
+
+  ## On windows if env variable is empty then windows will return NA from call
+  ## to Sys.getenv
+  if (is_windows()) {
+    expected_err <- "Environment variable 'SOME_VAR' is not set.*used in loc"
+  } else {
+    expected_err <- "Environment variable 'SOME_VAR' is empty.*used in loc"
+  }
+
+  withr::with_envvar(
+    c("SOME_VAR" = ""),
+    expect_error(
+      sys_getenv("SOME_VAR", "loc"),
+      expected_err))
+  withr::with_envvar(
+    c("SOME_VAR" = "x"),
+    expect_identical(sys_getenv("SOME_VAR", "loc"), "x"))
 })
 
 
@@ -462,7 +535,7 @@ test_that("ordered_map_to_list", {
 
 test_that("handle_missing_packages", {
   ## These packages don't exist so don't even try to install them to avoid
-  ## appveyer pain
+  ## CI pain
   mockery::stub(handle_missing_packages, "install_missing_packages", TRUE)
   ## we test show_question later
   mockery::stub(handle_missing_packages, "show_question", FALSE)
@@ -472,13 +545,11 @@ test_that("handle_missing_packages", {
 
   expect_error(handle_missing_packages(c("foo", "bar"), FALSE),
                "Missing packages: 'foo', 'bar'")
-
-##  handle_missing_packages(c("foo", "bar"), FALSE)
 })
 
 test_that("install_missing_packages", {
   ## These packages don't exist so don't even try to install them to avoid
-  ## appveyer pain
+  ## CI pain
   mockery::stub(install_missing_packages, "install_packages", TRUE)
 
   ## scenario 1: user asks to install the packages and succeed
@@ -519,43 +590,6 @@ test_that("show_question interactive", {
   withr::with_options(
     list(orderly.nolog = TRUE),
     expect_equal(show_question(), FALSE))
-})
-
-
-test_that("periodic", {
-  e <- new.env(parent = emptyenv())
-  e$x <- 1
-
-  skip_on_windows() # timing on windows is a pain
-  skip_on_cran() # gc may cause occasional failures here
-  gc() # avoid slow collections during this test
-  f <- function() {
-    e$x <- e$x + 1
-  }
-  g <- periodic(f, 0.1)
-  g()
-  expect_equal(e$x, 1)
-  Sys.sleep(0.2)
-  g()
-  expect_equal(e$x, 2)
-  g()
-  expect_equal(e$x, 2)
-})
-
-
-test_that("protect", {
-  f <- function() {
-    if (x < 0) {
-      stop("negative x")
-    } else {
-      x
-    }
-  }
-  g <- protect(f)
-  x <- 1
-  expect_equal(g(), 1)
-  x <- -1
-  expect_null(g())
 })
 
 
@@ -629,4 +663,180 @@ test_that("clean_path", {
                "c:/My Documents/Projects/whatever")
   expect_equal(clean_path("c:\\My Documents/Projects\\whatever"),
                "c:/My Documents/Projects/whatever")
+})
+
+
+test_that("random_seed", {
+  e1 <- new.env(parent = emptyenv())
+  e2 <- new.env(parent = e1)
+  e1[[".Random.seed"]] <- pi
+  expect_equal(random_seed(e1), pi)
+  expect_null(random_seed(e2))
+})
+
+
+## TODO: add tests of some of the comment processing
+test_that("yaml_block_info - simple test", {
+  yml <- c("a:", "  - 1", "  - 2", "b:", "    3", "c: 4")
+  expect_equal(yaml_load(yml), list(a = 1:2, b = 3, c = 4))
+
+  expect_equal(yaml_block_info("a", yml),
+               list(name = "a", exists = TRUE, block = TRUE,
+                    start = 1L, end = 3L, indent = "  "))
+  expect_equal(yaml_block_info("b", yml),
+               list(name = "b", exists = TRUE, block = TRUE,
+                    start = 4L, end = 5L, indent = "    "))
+  expect_equal(yaml_block_info("c", yml),
+               list(name = "c", exists = TRUE, block = FALSE,
+                    start = 6L, end = 6L))
+  expect_equal(yaml_block_info("d", yml),
+               list(name = "d", exists = FALSE, block = FALSE))
+})
+
+
+test_that("yaml parse failure", {
+  text <- c("a: 1", "a: 2")
+  expect_error(yaml_load(text))
+  expect_error(yaml_block_info("a", text), "Failed to process yaml")
+})
+
+
+test_that("insert into files", {
+  text <- c("a", "b", "c", "d", "e")
+  value <- c("x", "y")
+  where <- 3
+  path <- tempfile()
+  writeLines(text, path)
+
+  withr::with_envvar(c("NO_COLOR" = "true"), {
+    res <- evaluate_promise(
+      insert_into_file(text, where, value, path,
+                       show = TRUE, edit = FALSE, prompt = FALSE))
+  })
+  expect_match(res$messages, "Changes to '.+'")
+  expect_equal(res$result, filediff(text, where, value))
+  expect_equal(res$output,
+               "  2 | b\n  3 | c\n+ 4 | x\n+ 5 | y\n  6 | d\n  7 | e")
+
+  expect_equal(readLines(path), res$result$text) # unchanged
+
+  res <- evaluate_promise(
+    insert_into_file(text, where, value, path,
+                     show = FALSE, edit = TRUE, prompt = FALSE))
+  expect_equal(res$output, "")
+  expect_equal(res$result, filediff(text, where, value))
+  expect_equal(readLines(path), res$result$result)
+})
+
+
+test_that("prompting prevents write", {
+  skip_if_not_installed("mockery")
+  text <- c("a", "b", "c")
+  value <- c("x", "y")
+  path <- tempfile()
+  writeLines(text, path)
+  mockery::stub(insert_into_file, "prompt_ask_yes_no", FALSE)
+  expect_message(
+    res <- insert_into_file(text, 2, value, path,
+                            show = FALSE, edit = TRUE, prompt = TRUE),
+    "Not modifying file")
+  expect_equal(res, filediff(text, 2, value))
+  expect_equal(readLines(path), res$text) # unchanged
+})
+
+
+test_that("format filediff", {
+  text <- c("a", "b", "c", "d", "e")
+  value <- c("x", "y")
+  where <- 3
+  fd <- filediff(text, where, value)
+
+  str1 <- format_filediff(fd, colour = FALSE)
+  expect_equal(str1, "  2 | b\n  3 | c\n+ 4 | x\n+ 5 | y\n  6 | d\n  7 | e\n")
+  expect_false(crayon::has_style(str1))
+
+  str2 <- withr::with_options(
+    list(crayon.enabled = TRUE),
+    format_filediff(fd, colour = TRUE))
+  expect_true(crayon::has_style(str2))
+
+  withr::with_options(
+    list(crayon.enabled = FALSE),
+    expect_equal(format_filediff(fd), str1))
+  withr::with_options(
+    list(crayon.enabled = TRUE),
+    expect_equal(format_filediff(fd), str2))
+})
+
+
+test_that("don't write with no changes", {
+  text <- letters
+  where <- 26
+  value <- character(0)
+
+  p <- tempfile()
+  expect_message(
+    res <- insert_into_file(text, where, value, p, FALSE, TRUE, FALSE),
+    "No changes to make to")
+
+  expect_equal(res$changed, numeric(0))
+  expect_equal(format_filediff(res), character(0))
+  expect_false(file.exists(p))
+})
+
+
+test_that("palette", {
+  withr::with_options(
+    list(crayon.enabled = TRUE), {
+      expect_equal(orderly_style("highlight")("x"),
+                   crayon::bold(crayon::make_style("steelblue3")("x")))
+      expect_equal(orderly_style("alert")("x"),
+                   crayon::bold(crayon::make_style("hotpink")("x")))
+      expect_equal(orderly_style("fade")("x"),
+                   crayon::make_style("grey")("x"))
+      expect_equal(orderly_style("other")("x"), "x")
+      expect_equal(orderly_style("workflow")("x"),
+                   crayon::bold(crayon::make_style("orange2")("x")))
+   })
+})
+
+test_that("can conditionally capture logs", {
+  fun <- function() {
+    message("Test")
+  }
+  t <- tempfile()
+  expect_message(conditional_capture_log(FALSE, t, fun()), "Test")
+  expect_false(file.exists(t))
+
+  expect_silent(conditional_capture_log(TRUE, t, fun()))
+  expect_true(file.exists(t))
+  expect_equal(readLines(t), "Test")
+
+  ## Logfile can be appended to
+  expect_silent(conditional_capture_log(TRUE, t, fun()))
+  expect_equal(readLines(t), c("Test", "Test"))
+})
+
+test_that("lock_bindings can lock multiple variables at once", {
+  test_class <- R6::R6Class(
+    "test_class",
+
+    public = list(
+      a = "a",
+      b = "b",
+      initialize = function() {
+        lock_bindings(c("a", "b"), self)
+      }
+    )
+  )
+
+  obj <- test_class$new()
+  expect_error(obj$a <- "2", "cannot change value of locked binding for 'a'")
+  expect_error(obj$b <- "2", "cannot change value of locked binding for 'b'")
+})
+
+test_that("clean_report_name strips slashes and src dir", {
+  expect_equal(clean_report_name("test"), "test")
+  expect_equal(clean_report_name("test/"), "test")
+  expect_equal(clean_report_name("src/test"), "test")
 })

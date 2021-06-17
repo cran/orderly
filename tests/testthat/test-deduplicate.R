@@ -3,7 +3,7 @@ context("deduplicate")
 test_that("deduplicate demo", {
   skip_on_cran()
   path <- create_orderly_demo()
-  config <- orderly_config_get(path, locate)
+  config <- orderly_config(path, locate)
   x <- orderly_deduplicate_info(config)
 
   expect_true(all(x$untracked$internal))
@@ -29,12 +29,12 @@ test_that("deduplicate demo", {
   ## This will need updating every time we change the demo pretty
   ## much.
 
-  expect_equal(nrow(plan), 43)
+  expect_equal(nrow(plan), 40)
 
   orderly_deduplicate_run(plan)
 
   y <- orderly_deduplicate_info(config)
-  expect_equal(sum(y$files$state == "linked"), 43)
+  expect_equal(sum(y$files$state == "linked"), 40)
   expect_equal(sum(y$files$state == "duplicated"), 0)
   expect_equal(x$files$state == "distinct",
                y$files$state == "distinct")
@@ -86,7 +86,7 @@ test_that("print on run", {
 test_that("deduplicate empty", {
   skip_on_cran()
   path <- orderly_example("demo")
-  x <- orderly_deduplicate_info(orderly_config(path))
+  x <- orderly_deduplicate_info(orderly_config_$new(path))
   expect_is(x, "orderly_deduplicate_info")
   expect_equal(nrow(x$files), 0)
   expect_equal(orderly_deduplicate(path, quiet = TRUE), x)
@@ -100,7 +100,7 @@ test_that("don't deduplicate across filesystem boundaries", {
   id2 <- orderly_run("minimal", root = path, echo = FALSE)
   orderly_commit(id1, root = path)
   orderly_commit(id2, root = path)
-  info <- orderly_deduplicate_info(orderly_config(path))
+  info <- orderly_deduplicate_info(orderly_config_$new(path))
   info$files$device_id[[2]] <- info$files$device_id[[1]] + 1
   expect_error(
     orderly_deduplicate_prepare(info),
@@ -115,7 +115,7 @@ test_that("don't deduplicate hardlinked files", {
   id2 <- orderly_run("minimal", root = path, echo = FALSE)
   orderly_commit(id1, root = path)
   orderly_commit(id2, root = path)
-  info <- orderly_deduplicate_info(orderly_config(path))
+  info <- orderly_deduplicate_info(orderly_config_$new(path))
   info$files$hard_links[[5]] <- 2
   expect_error(
     orderly_deduplicate_prepare(info),
@@ -134,13 +134,14 @@ test_that("don't deduplicate after file modification", {
   ## truncate the file
   file.create(file.path(path, "archive", "minimal", id1, "script.R"))
 
-  info <- orderly_deduplicate_info(orderly_config(path))
+  info <- orderly_deduplicate_info(orderly_config_$new(path))
   expect_equal(sum(!info$files$unchanged), 1)
 
   expect_error(
     orderly_deduplicate_prepare(info),
     "Can't deduplicate files that have been modified:.+- minimal/.+/script.R")
 })
+
 
 test_that("relink basic case", {
   skip_on_cran()

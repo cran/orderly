@@ -27,6 +27,15 @@
 ##'   be validated on open (currently only applicable with \code{type
 ##'   = "destination"}).  This is primarily intended for internal use.
 ##'
+##' @param instance Used only by \code{type = "source"}, and used to
+##'   select the instance, where multiple instances are configured.
+##'   Use a single \emph{unnamed} character string to indicate an
+##'   instance to match.  If given, then this name must be present in
+##'   all databases where instances are listed in
+##'   \code{orderly_config.yml}, and will be ignored by all database
+##'   where instances are not given.  See the "orderly" vignette for
+##'   further information.
+##'
 ##' @return A database connection, or list of connections in the case
 ##'   of \code{source}.
 ##'
@@ -55,19 +64,24 @@
 ##' # These tables are documented online:
 ##' # https://vimc.github.io/orderly/schema
 ##' DBI::dbReadTable(db, "report_version")
-orderly_db <- function(type, root = NULL, locate = TRUE, validate = TRUE) {
-  config <- orderly_config_get(root, locate)
+orderly_db <- function(type, root = NULL, locate = TRUE, validate = TRUE,
+                       instance = NULL) {
+  config <- orderly_config(root, locate)
   if (type == "rds") {
     con <- file_store_rds(path_rds(config$root))
   } else if (type == "csv") {
     con <- file_store_csv(path_csv(config$root))
   } else if (type == "destination") {
-    con <- orderly_db_dbi_connect(config$destination, config)
+    con <- orderly_db_dbi_connect(config$destination, config,
+                                  "orderly_config.yml:destination")
     withCallingHandlers(
       report_db_init(con, config, validate = validate),
       error = function(e) DBI::dbDisconnect(con))
   } else if (type == "source") {
-    con <- lapply(config$database, orderly_db_dbi_connect, config)
+    config_db <- db_instance_select(instance, config$database)
+    name <- sprintf("orderly_config.yml:database:%s", names(config_db))
+    con <- Map(orderly_db_dbi_connect, config_db, name = name,
+               MoreArgs = list(config = config))
   } else {
     stop(sprintf("Invalid db type '%s'", type))
   }
@@ -75,18 +89,19 @@ orderly_db <- function(type, root = NULL, locate = TRUE, validate = TRUE) {
 }
 
 
-orderly_db_dbi_connect <- function(x, config) {
-  dat <- orderly_db_args(x, config)
-  do.call(DBI::dbConnect, c(list(dat$driver()), dat$args))
+orderly_db_dbi_connect <- function(x, config, name) {
+  dat <- orderly_db_args(x, config, name)
+  con <- do.call(DBI::dbConnect, c(list(dat$driver()), dat$args))
+  attr(con, "instance") <- x[["instance"]]
+  con
 }
 
 
-orderly_db_args <- function(x, config) {
+orderly_db_args <- function(x, config, name) {
   driver <- getExportedValue(x$driver[[1L]], x$driver[[2L]])
-
   args <- withr::with_envvar(
     orderly_envir_read(config$root),
-    args <- resolve_driver_config(x$args, config))
+    args <- resolve_driver_config(x$args, config, name))
 
   if (x$driver[[2]] == "SQLite") {
     dbname <- args$dbname
@@ -159,7 +174,7 @@ orderly_rebuild <- function(root = NULL, locate = TRUE, verbose = TRUE,
   oo <- options(orderly.nowarnings = TRUE)
   on.exit(options(oo))
 
-  config <- orderly_config_get(root, locate)
+  config <- orderly_config(root, locate)
 
   if (length(migrate_plan(config$archive_version, to = NULL)) > 0L) {
     orderly_log("migrate", "archive")
@@ -169,6 +184,7 @@ orderly_rebuild <- function(root = NULL, locate = TRUE, verbose = TRUE,
   }
 
   if (!if_schema_changed || report_db_needs_rebuild(config)) {
+    orderly_backup(config, suffix = paste0(".", iso_time_str(Sys.time())))
     orderly_log("rebuild", "db")
     report_db_rebuild(config, verbose)
     invisible(TRUE)
@@ -187,12 +203,12 @@ orderly_rebuild <- function(root = NULL, locate = TRUE, verbose = TRUE,
 ## > backup may be performed on a live source database without
 ## > preventing other database connections from reading or writing to
 ## > the source database while the backup is underway.
-orderly_backup <- function(config = NULL, locate = TRUE) {
-  config <- orderly_config_get(config, locate)
+orderly_backup <- function(config = NULL, locate = TRUE, suffix = NULL) {
+  config <- orderly_config(config, locate)
   if (config$destination$driver[[1]] == "RSQLite") {
     curr <- orderly_db_args(config$destination, config)$args$dbname
 
-    dest <- path_db_backup(config$root, curr)
+    dest <- path_db_backup(config$root, curr, suffix)
     dir.create(dirname(dest), FALSE, TRUE)
 
     prefix <- paste0(config$root, "/")
@@ -202,4 +218,64 @@ orderly_backup <- function(config = NULL, locate = TRUE) {
 
     sqlite_backup(curr, dest)
   }
+}
+
+
+db_instance_select <- function(instance, config_db) {
+  instances <- lapply(config_db, function(x) names(x$instances))
+  has_instance <- lengths(instances) > 0L
+  if (!any(has_instance)) {
+    if (!is.null(instance)) {
+      stop("Can't specify 'instance' with no databases supporting it")
+    }
+    return(config_db)
+  }
+
+  if (is.null(instance)) {
+    instance <- vcapply(config_db[has_instance], function(x)
+      names(x$instances)[[1]])
+  }
+
+  assert_character(instance)
+  if (length(instance) == 1L && is.null(names(instance))) {
+    err <- !vlapply(instances[has_instance], function(x) instance %in% x)
+    if (any(err)) {
+      stop(sprintf("Invalid instance '%s' for %s %s",
+                   instance,
+                   ngettext(sum(err), "database", "databases"),
+                   paste(squote(names(err)[err]), collapse = ", ")),
+           call. = FALSE)
+    }
+    instance <- set_names(rep(instance, sum(has_instance)),
+                          names(instances)[has_instance])
+  } else {
+    assert_named(instance, TRUE)
+    ## 1. Validate all database names (names(instance)) are in names(db)
+    err <- setdiff(names(instance), names(config_db))
+    if (length(err) > 0L) {
+      stop(sprintf("Invalid database %s %s in provided instance",
+                   ngettext(length(err), "name", "names"),
+                   paste(squote(err), collapse = ", ")),
+           call. = FALSE)
+    }
+    ## 2. Validate all instance names (unname(instance)) are in each db
+    err <- !list_to_logical(Map(`%in%`, instance, instances[names(instance)]))
+    if (any(err)) {
+      msg <- sprintf("'%s' for '%s'", instance[err], names(instance)[err])
+      stop(sprintf("Invalid %s: %s",
+                   ngettext(length(msg), "instance", "instances"),
+                   paste(msg, collapse = ", ")),
+           call. = FALSE)
+    }
+    for (i in setdiff(names(which(has_instance)), names(instance))) {
+      instance[[i]] <- names(config_db[[i]]$instances)[[1]]
+    }
+  }
+
+  for (i in names(instance)) {
+    config_db[[i]]$args <- config_db[[i]]$instances[[instance[[i]]]]
+    config_db[[i]]$instance <- instance[[i]]
+  }
+
+  config_db
 }
