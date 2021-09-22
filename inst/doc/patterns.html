@@ -12,7 +12,7 @@
 
 
 
-<title>Orderly patterns</title>
+<title>orderly patterns</title>
 
 
 <style type="text/css">
@@ -314,7 +314,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 
 
-<h1 class="title toc-ignore">Orderly patterns</h1>
+<h1 class="title toc-ignore">orderly patterns</h1>
 
 
 
@@ -351,7 +351,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <li>everyone will end up with a different report id, so it is difficult to know that we’re looking at the same “effective” report when results are shared</li>
 </ul>
 <p>What we want is that after a particular version of a report has been run, it is easy for other people to start depending on it. To achieve this we need a method for getting the archive from one person’s computer to another.</p>
-<p>For this discussion we will assume two researchers <a href="https://en.wikipedia.org/wiki/Alice_and_Bob">“Alice” and “Bob”</a> rather than “Researcher A” and “Researcher B”.</p>
+<p>For this discussion we will assume two researchers “Alice” and “Bob” (rather than “Researcher A” and “Researcher B”).</p>
 <p>Alice develops a report <code>report-a</code> on her computer by running <code>orderly::orderly_new(&quot;report-a&quot;)</code> and working with <code>orderly::orderly_develop_start()</code> and <code>orderly::orderly_run()</code> until she is happy with the results. She then creates a pull request, and Bob approves it (probably after checking that the report runs on his machine too) and merges it.</p>
 <p>Now that this report has been merged into master we need to run a “canonical copy”. We do this on a third copy of the sources that are checked out somewhere accessible to <em>both</em> Alice and Bob; this might be using Dropbox or another file-sharing platform, or on a network drive visible to both users.</p>
 <p>Either Alice or Bob may now pull the new changes onto this new source copy, and run <code>orderly run report-a</code> on the command line. Using the command-line version of <code>orderly</code> ensures that the report is run in a clean session, along with keeping a copy of the log alongside the outputs.</p>
@@ -361,7 +361,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb1-3" title="3">    <span class="fu">driver:</span><span class="at"> orderly::orderly_remote_path</span></a>
 <a class="sourceLine" id="cb1-4" title="4">    <span class="fu">args:</span></a>
 <a class="sourceLine" id="cb1-5" title="5">      <span class="fu">path:</span><span class="at"> $ORDERLY_PATH_DEFAULT_REMOTE</span></a></code></pre></div>
-<p>This tells <code>orderly</code> that we will use a file-based remote source (i.e., a shared copy of orderly) and that the path to this source is determined by the <a href="https://en.wikipedia.org/wiki/Environment_variable">Environment variable</a> <code>ORDERLY_PATH_DEFAULT_REMOTE</code>. Using an environment variable is necessary here as this path will certainly differ between Alice and Bob.</p>
+<p>This tells <code>orderly</code> that we will use a file-based remote source (i.e., a shared copy of orderly) and that the path to this source is determined by the Environment variable <code>ORDERLY_PATH_DEFAULT_REMOTE</code>. Using an environment variable is necessary here as this path will certainly differ between Alice and Bob.</p>
 <p>To fill in the environment variable we create a file <code>orderly_envir.yml</code> (which should be added to <code>.gitignore</code>) containing the path to the shared source. For Alice, this might look like</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode yaml"><code class="sourceCode yaml"><a class="sourceLine" id="cb2-1" title="1"><span class="fu">ORDERLY_PATH_DEFAULT_REMOTE:</span><span class="at"> /Users/alice/Dropbox/our-project</span></a></code></pre></div>
 <p>and for Bob it might look like</p>
@@ -389,7 +389,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <ol style="list-style-type: decimal">
 <li>A persistent copy of R running <code>orderly</code> that can run reports as needed</li>
 <li>A web server that exposes a user-friendly web portal showing versions of orderly reports and an HTTP API (this application is written in <a href="https://kotlinlang.org">Kotlin</a>)</li>
-<li>A <a href="https://en.wikipedia.org/wiki/Reverse_proxy">reverse proxy</a> used to secure the application with https</li>
+<li>A reverse proxy used to secure the application with https</li>
 </ol>
 <p>This <a href="https://raw.githubusercontent.com/vimc/montagu-machine/master/docs/diagrams/OrderlyWeb%20architecture.png">diagram may help show how the pieces fit together</a>.</p>
 <p>If OrderlyWeb has been deployed onto <code>orderly.example.com</code>, then we might declare it in <code>orderly_config.yml</code></p>

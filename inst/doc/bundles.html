@@ -337,68 +337,68 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" title="1">id &lt;-<span class="st"> </span>orderly<span class="op">::</span><span class="kw">orderly_run</span>(<span class="st">&quot;other&quot;</span>, <span class="dt">parameters =</span> <span class="kw">list</span>(<span class="dt">nmin =</span> <span class="dv">0</span>),</a>
 <a class="sourceLine" id="cb2-2" title="2">                           <span class="dt">echo =</span> <span class="ot">FALSE</span>, <span class="dt">root =</span> path)</a></code></pre></div>
 <pre><code>## [ name       ]  other</code></pre>
-<pre><code>## [ id         ]  20210617-165840-f1a93526</code></pre>
+<pre><code>## [ id         ]  20210922-102117-69521688</code></pre>
 <pre><code>## [ sources    ]  functions.R</code></pre>
 <pre><code>## [ parameter  ]  nmin: 0</code></pre>
-<pre><code>## [ start      ]  2021-06-17 16:58:40</code></pre>
+<pre><code>## [ start      ]  2021-09-22 10:21:17</code></pre>
 <pre><code>## [ data       ]  source =&gt; extract: 20 x 2</code></pre>
 <pre><code>## [ parameter  ]  nmin: 0</code></pre>
-<pre><code>## [ end        ]  2021-06-17 16:58:40</code></pre>
-<pre><code>## [ elapsed    ]  Ran report in 0.04179978 secs</code></pre>
+<pre><code>## [ end        ]  2021-09-22 10:21:17</code></pre>
+<pre><code>## [ elapsed    ]  Ran report in 0.04658222 secs</code></pre>
 <pre><code>## [ artefact   ]  summary.csv: 3fac8347e152c84c96e6676413c718b7
 ## [ ...        ]  graph.png: 1adf6a0f2e70dd8c25d3d8ba702d299e</code></pre>
 <div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb13-1" title="1">orderly<span class="op">::</span><span class="kw">orderly_commit</span>(id, <span class="dt">root =</span> path)</a></code></pre></div>
-<pre><code>## [ commit     ]  other/20210617-165840-f1a93526</code></pre>
+<pre><code>## [ commit     ]  other/20210922-102117-69521688</code></pre>
 <pre><code>## [ copy       ]</code></pre>
-<pre><code>## [ import     ]  other:20210617-165840-f1a93526</code></pre>
+<pre><code>## [ import     ]  other:20210922-102117-69521688</code></pre>
 <pre><code>## [ success    ]  :)</code></pre>
-<pre><code>## [1] &quot;/tmp/RtmppRdXoQ/file11aaaaafd897/archive/other/20210617-165840-f1a93526&quot;</code></pre>
+<pre><code>## [1] &quot;/tmp/RtmpLyoPhu/file3f3d14ee64cc7/archive/other/20210922-102117-69521688&quot;</code></pre>
 <p>We need a place that we’ll put the bundles:</p>
 <div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb19-1" title="1">path_bundles &lt;-<span class="st"> </span><span class="kw">tempfile</span>()</a></code></pre></div>
 <p>Now, we can pack up <code>use_dependency</code> to run</p>
 <div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb20-1" title="1">bundle &lt;-<span class="st"> </span>orderly<span class="op">::</span><span class="kw">orderly_bundle_pack</span>(path_bundles, <span class="st">&quot;use_dependency&quot;</span>,</a>
 <a class="sourceLine" id="cb20-2" title="2">                                       <span class="dt">root =</span> path)</a></code></pre></div>
 <pre><code>## [ name       ]  use_dependency</code></pre>
-<pre><code>## [ id         ]  20210617-165841-2d8f07a8</code></pre>
-<pre><code>## [ depends    ]  other@20210617-165840-f1a93526:summary.csv -&gt; incoming.csv</code></pre>
-<pre><code>## [ start      ]  2021-06-17 16:58:41</code></pre>
-<pre><code>## [ bundle pack ]  20210617-165841-2d8f07a8</code></pre>
+<pre><code>## [ id         ]  20210922-102117-ab4ad8a0</code></pre>
+<pre><code>## [ depends    ]  other@20210922-102117-69521688:summary.csv -&gt; incoming.csv</code></pre>
+<pre><code>## [ start      ]  2021-09-22 10:21:17</code></pre>
+<pre><code>## [ bundle pack ]  20210922-102117-ab4ad8a0</code></pre>
 <div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb26-1" title="1">bundle</a></code></pre></div>
 <pre><code>## $id
-## [1] &quot;20210617-165841-2d8f07a8&quot;
+## [1] &quot;20210922-102117-ab4ad8a0&quot;
 ## 
 ## $path
-## [1] &quot;/tmp/RtmppRdXoQ/file11aaa1e6d4827/20210617-165841-2d8f07a8.zip&quot;</code></pre>
+## [1] &quot;/tmp/RtmpLyoPhu/file3f3d118cfa1e7/20210922-102117-ab4ad8a0.zip&quot;</code></pre>
 <p><code>orderly_bundle_pack</code> has created a zip file. The format of this file is internal to orderly (it will likely change and will at some point become resistant to tampering), but contains:</p>
 <div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb28-1" title="1">zip<span class="op">::</span><span class="kw">zip_list</span>(bundle<span class="op">$</span>path)</a></code></pre></div>
 <pre><code>##                                      filename compressed_size uncompressed_size
-## 1                   20210617-165841-2d8f07a8/               0                 0
-## 2              20210617-165841-2d8f07a8/meta/               0                 0
-## 3    20210617-165841-2d8f07a8/meta/config.rds            1458              1453
-## 4      20210617-165841-2d8f07a8/meta/info.rds            3419              3414
-## 5  20210617-165841-2d8f07a8/meta/manifest.rds             284               279
-## 6   20210617-165841-2d8f07a8/meta/session.rds           21923             21918
-## 7              20210617-165841-2d8f07a8/pack/               0                 0
-## 8  20210617-165841-2d8f07a8/pack/incoming.csv             542               888
-## 9   20210617-165841-2d8f07a8/pack/orderly.yml             214               358
-## 10     20210617-165841-2d8f07a8/pack/script.R             175               220
+## 1                   20210922-102117-ab4ad8a0/               0                 0
+## 2              20210922-102117-ab4ad8a0/meta/               0                 0
+## 3    20210922-102117-ab4ad8a0/meta/config.rds            1461              1456
+## 4      20210922-102117-ab4ad8a0/meta/info.rds            3422              3417
+## 5  20210922-102117-ab4ad8a0/meta/manifest.rds             286               281
+## 6   20210922-102117-ab4ad8a0/meta/session.rds           21888             21883
+## 7              20210922-102117-ab4ad8a0/pack/               0                 0
+## 8  20210922-102117-ab4ad8a0/pack/incoming.csv             542               888
+## 9   20210922-102117-ab4ad8a0/pack/orderly.yml             214               358
+## 10     20210922-102117-ab4ad8a0/pack/script.R             175               220
 ##              timestamp permissions    crc32 offset
-## 1  2021-06-17 15:58:40         755 00000000      0
-## 2  2021-06-17 15:58:40         755 00000000     55
-## 3  2021-06-17 15:58:40         644 ca913ede    115
-## 4  2021-06-17 15:58:40         644 147e3424   1659
-## 5  2021-06-17 15:58:40         644 692ad244   5162
-## 6  2021-06-17 15:58:40         644 830eacc4   5534
-## 7  2021-06-17 15:58:40         755 00000000  27544
-## 8  2021-06-17 15:58:40         644 e3c70810  27604
-## 9  2021-06-17 15:58:40         644 93fda3f3  28234
-## 10 2021-06-17 15:58:40         644 58329b6b  28535</code></pre>
+## 1  2021-09-22 09:21:16         755 00000000      0
+## 2  2021-09-22 09:21:16         755 00000000     55
+## 3  2021-09-22 09:21:16         644 04ce8ea6    115
+## 4  2021-09-22 09:21:16         644 1cfc1843   1662
+## 5  2021-09-22 09:21:16         644 f652c2d9   5168
+## 6  2021-09-22 09:21:16         644 1caad66a   5542
+## 7  2021-09-22 09:21:16         755 00000000  27517
+## 8  2021-09-22 09:21:16         644 e3c70810  27577
+## 9  2021-09-22 09:21:16         644 93fda3f3  28207
+## 10 2021-09-22 09:21:16         644 58329b6b  28508</code></pre>
 <p>The subdirectory <code>pack</code> contains the report working directory, all code and dependencies, etc, while <code>meta</code> contains additional information required to run the report. In particular the <code>incoming.csv</code> file in the <code>pack</code> directory contains the dependency imported from <code>other</code>.</p>
 <p>Then copy this zip file somewhere else to run it (details vary based on your system, and moving the file is not <em>necessary</em> to run it, though it will be the most likely situation).</p>
 <p>Once the files have been moved we can run it with:</p>
 <div class="sourceCode" id="cb30"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb30-1" title="1">workdir &lt;-<span class="st"> </span><span class="kw">tempfile</span>()</a>
 <a class="sourceLine" id="cb30-2" title="2">res &lt;-<span class="st"> </span>orderly<span class="op">::</span><span class="kw">orderly_bundle_run</span>(bundle<span class="op">$</span>path, workdir)</a></code></pre></div>
-<pre><code>## [ start      ]  2021-06-17 16:58:41</code></pre>
+<pre><code>## [ start      ]  2021-09-22 10:21:17</code></pre>
 <pre><code>## 
 ## &gt; d &lt;- read.csv(&quot;incoming.csv&quot;, stringsAsFactors = FALSE)
 ## 
@@ -415,23 +415,23 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 ## &gt; info &lt;- orderly::orderly_run_info()
 ## 
 ## &gt; saveRDS(info, &quot;info.rds&quot;)</code></pre>
-<pre><code>## [ end        ]  2021-06-17 16:58:41</code></pre>
-<pre><code>## [ elapsed    ]  Ran report in 0.008886099 secs</code></pre>
+<pre><code>## [ end        ]  2021-09-22 10:21:17</code></pre>
+<pre><code>## [ elapsed    ]  Ran report in 0.01021791 secs</code></pre>
 <pre><code>## [ artefact   ]  graph.png: 1adf6a0f2e70dd8c25d3d8ba702d299e
-## [ ...        ]  info.rds: 52bd845108bafb9d0cdb343a806a7536</code></pre>
+## [ ...        ]  info.rds: 53a86dfc9d8c9828b7926a8eec9271ff</code></pre>
 <p>With the <code>workdir</code> being a directory that you want the report to be run in. This can be the same as the path the incoming zip file is found, if you want, but this will make it harder to know what has been run already or not.</p>
 <p>This creates <em>another</em> zip file, but this time contains the results of running the report.</p>
 <p>The result can be imported into order by using <code>orderly::orderly_bundle_import</code> with the path to the zip file:</p>
 <div class="sourceCode" id="cb37"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb37-1" title="1">orderly<span class="op">::</span><span class="kw">orderly_bundle_import</span>(res<span class="op">$</span>path, <span class="dt">root =</span> path)</a></code></pre></div>
-<pre><code>## [ import     ]  use_dependency:20210617-165841-2d8f07a8</code></pre>
+<pre><code>## [ import     ]  use_dependency:20210922-102117-ab4ad8a0</code></pre>
 <p>The copy of <code>use_dependency</code> is now in the archive and can be used like any other orderly report</p>
 <div class="sourceCode" id="cb39"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb39-1" title="1">orderly<span class="op">::</span><span class="kw">orderly_list_archive</span>(path)</a></code></pre></div>
 <pre><code>##             name                       id
-## 1          other 20210617-165840-f1a93526
-## 2 use_dependency 20210617-165841-2d8f07a8</code></pre>
+## 1          other 20210922-102117-69521688
+## 2 use_dependency 20210922-102117-ab4ad8a0</code></pre>
 <div class="sourceCode" id="cb41"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb41-1" title="1">orderly<span class="op">::</span><span class="kw">orderly_graph</span>(<span class="st">&quot;other&quot;</span>, <span class="dt">root =</span> path)</a></code></pre></div>
-<pre><code>## other [20210617-165840-f1a93526]
-## └──use_dependency [20210617-165841-2d8f07a8]</code></pre>
+<pre><code>## other [20210922-102117-69521688]
+## └──use_dependency [20210922-102117-ab4ad8a0]</code></pre>
 </div>
 <div id="limitations" class="section level2">
 <h2>Limitations</h2>

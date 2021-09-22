@@ -12,7 +12,7 @@
 
 <meta name="author" content="Rich FitzJohn" />
 
-<meta name="date" content="2021-06-17" />
+<meta name="date" content="2021-09-22" />
 
 <title>orderly remotes</title>
 
@@ -318,7 +318,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 <h1 class="title toc-ignore">orderly remotes</h1>
 <h4 class="author">Rich FitzJohn</h4>
-<h4 class="date">2021-06-17</h4>
+<h4 class="date">2021-09-22</h4>
 
 
 
@@ -336,7 +336,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <ol style="list-style-type: decimal">
 <li>A persistent copy of R running <code>orderly</code> that can run reports as needed using the <code>orderly.server::orderly_runner</code> function</li>
 <li>A web server that exposes a user-friendly web portal showing versions of orderly reports and an http api (this application is written in <a href="https://kotlinlang.org">Kotlin</a>)</li>
-<li>A <a href="https://en.wikipedia.org/wiki/Reverse_proxy">reverse proxy</a> used to secure the application with https</li>
+<li>A reverse proxy used to secure the application with https</li>
 </ol>
 <p>A <a href="https://raw.githubusercontent.com/vimc/montagu-machine/master/docs/diagrams/OrderlyWeb%20architecture.png">diagram may help show how the pieces fit together</a></p>
 <p>Getting OrderlyWeb installed requires a little work, and you will need access to an appropriate server running docker, our <a href="https://github.com/vimc/orderly-web-deploy/">python-based deployment tool</a>, and TLS certificates for the server that you are using. We recommend using <a href="https://www.vaultproject.io">vault</a> for storing certificates and any secrets used in deployment.</p>

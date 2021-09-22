@@ -12,7 +12,7 @@
 
 <meta name="author" content="Rich FitzJohn" />
 
-<meta name="date" content="2021-06-17" />
+<meta name="date" content="2021-09-22" />
 
 <title>orderly</title>
 
@@ -318,14 +318,14 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 <h1 class="title toc-ignore">orderly</h1>
 <h4 class="author">Rich FitzJohn</h4>
-<h4 class="date">2021-06-17</h4>
+<h4 class="date">2021-09-22</h4>
 
 
 
 <div id="introduction" class="section level2">
 <h2>Introduction</h2>
 <!-- introduction begin -->
-<p><code>orderly</code> is a package designed to help make analysis more <a href="https://en.wikipedia.org/wiki/Reproducibility">reproducible</a>. Its principal aim is to automate a series of basic steps in the process of writing analyses, making it easy to:</p>
+<p><code>orderly</code> is a package designed to help make analysis more reproducible. Its principal aim is to automate a series of basic steps in the process of writing analyses, making it easy to:</p>
 <ul>
 <li>track all inputs into an analysis (packages, code, and data resources)</li>
 <li>store multiple versions of an analysis where it is repeated</li>
@@ -378,7 +378,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <li>then runs the analysis</li>
 <li>verifies that the declared artefacts are produced</li>
 </ol>
-<p>It then stores metadata alongside the analysis including <a href="https://en.wikipedia.org/wiki/Hash_function">md5 hashes</a> of all inputs and outputs, copies of data extracted from the database, a record of all R packages loaded at the end of the session, and (if using git) information about the git state (hash, branch and status).</p>
+<p>It then stores metadata alongside the analysis including hashes of all inputs and outputs, copies of data extracted from the database, a record of all R packages loaded at the end of the session, and (if using git) information about the git state (hash, branch and status).</p>
 <p>Then if one of the dependencies of a report changes (the used data, code, etc), we have metadata that can be queried to identify the likely source of the change.</p>
 <!-- introduction end -->
 </div>
@@ -421,8 +421,8 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" title="1">id &lt;-<span class="st"> </span>orderly<span class="op">::</span><span class="kw">orderly_run</span>(<span class="st">&quot;example&quot;</span>, <span class="dt">root =</span> path)</a></code></pre></div>
 <pre><code>## [ info       ]  Writing initial orderly archive version as 1.1.25</code></pre>
 <pre><code>## [ name       ]  example</code></pre>
-<pre><code>## [ id         ]  20210617-165842-007944c1</code></pre>
-<pre><code>## [ start      ]  2021-06-17 16:58:42</code></pre>
+<pre><code>## [ id         ]  20210922-102118-4ac4205f</code></pre>
+<pre><code>## [ start      ]  2021-09-22 10:21:18</code></pre>
 <pre><code>## 
 ## &gt; dat &lt;- data.frame(x = 1:10, y = runif(10))
 ## 
@@ -435,19 +435,19 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 ## &gt; dev.off()
 ## png 
 ##   2</code></pre>
-<pre><code>## [ end        ]  2021-06-17 16:58:42</code></pre>
-<pre><code>## [ elapsed    ]  Ran report in 0.007492781 secs</code></pre>
+<pre><code>## [ end        ]  2021-09-22 10:21:18</code></pre>
+<pre><code>## [ elapsed    ]  Ran report in 0.007956743 secs</code></pre>
 <pre><code>## [ artefact   ]  mygraph.png: 8251395b460d4ce91430350740b2fa2a
 ## [ ...        ]  mydata.csv: 8354220c49f0bec2665684bc288f52ca</code></pre>
 <p>The return value is the id of the report (also printed on the third line of log output) and is always in the format <code>YYYYMMDD-HHMMSS-abcdef01</code> where the last 8 characters are hex digits (i.e., 4 random bytes). This means reports will automatically sort nicely but we’ll have some collision resistance.</p>
 <div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb14-1" title="1">id</a></code></pre></div>
-<pre><code>## [1] &quot;20210617-165842-007944c1&quot;</code></pre>
+<pre><code>## [1] &quot;20210922-102118-4ac4205f&quot;</code></pre>
 <p>Having run the report, the directory layout now looks like:</p>
 <pre><code>.
 ├── archive
 ├── draft
 │   └── example
-│       └── 20210617-165842-007944c1
+│       └── 20210922-102118-4ac4205f
 │           ├── mydata.csv
 │           ├── mygraph.png
 │           ├── orderly.yml
@@ -458,31 +458,31 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
     └── example
         ├── orderly.yml
         └── script.R</code></pre>
-<p>Within <code>drafts</code>, the directory <code>example/20210617-165842-007944c1</code> has been created which contains the result of running the report. In here there are the files:</p>
+<p>Within <code>drafts</code>, the directory <code>example/20210922-102118-4ac4205f</code> has been created which contains the result of running the report. In here there are the files:</p>
 <ul>
 <li><code>orderly.yml</code>: this is an exact copy of the input file</li>
 <li><code>script.R</code>: this is an exact copy of the script used for the analysis</li>
 <li><code>mygraph.png</code>: the artefact created by the report</li>
 <li><code>orderly_run.rds</code>: this is metadata about the run and includes hashes of input files, of the data used, and of the output etc, along with details about the packages used and the state of git. It is stored in R’s internal data format.</li>
 </ul>
-<p>Every time a report is run it will create a new directory at this level with a new id. Running the report again now might create the directory <code>example/20210617-165842-0be5933e</code></p>
+<p>Every time a report is run it will create a new directory at this level with a new id. Running the report again now might create the directory <code>example/20210922-102118-54093492</code></p>
 <p>We store the copies of files as run by <code>orderly</code> so that even if the input files change we can still easily get back to previous versions of the inputs, alongside the outputs, and these are safe from any changes to the underlying source.</p>
 <p>You can see the list of draft reports like so:</p>
 <div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb17-1" title="1">orderly<span class="op">::</span><span class="kw">orderly_list_drafts</span>(<span class="dt">root =</span> path)</a></code></pre></div>
 <pre><code>##      name                       id
-## 1 example 20210617-165842-007944c1</code></pre>
+## 1 example 20210922-102118-4ac4205f</code></pre>
 <p>Once you’re happy with a report, then “commit” it with</p>
 <div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb19-1" title="1">orderly<span class="op">::</span><span class="kw">orderly_commit</span>(id, <span class="dt">root =</span> path)</a>
-<a class="sourceLine" id="cb19-2" title="2"><span class="co">## [ commit     ]  example/20210617-165842-007944c1</span></a>
+<a class="sourceLine" id="cb19-2" title="2"><span class="co">## [ commit     ]  example/20210922-102118-4ac4205f</span></a>
 <a class="sourceLine" id="cb19-3" title="3"><span class="co">## [ copy       ]</span></a>
-<a class="sourceLine" id="cb19-4" title="4"><span class="co">## [ import     ]  example:20210617-165842-007944c1</span></a>
+<a class="sourceLine" id="cb19-4" title="4"><span class="co">## [ import     ]  example:20210922-102118-4ac4205f</span></a>
 <a class="sourceLine" id="cb19-5" title="5"><span class="co">## [ success    ]  :)</span></a>
-<a class="sourceLine" id="cb19-6" title="6"><span class="co">## [1] &quot;/tmp/RtmppRdXoQ/file11aaa54d78f6b/archive/example/20210617-165842-007944c1&quot;</span></a></code></pre></div>
+<a class="sourceLine" id="cb19-6" title="6"><span class="co">## [1] &quot;/tmp/RtmpLyoPhu/file3f3d1246f4a2c/archive/example/20210922-102118-4ac4205f&quot;</span></a></code></pre></div>
 <p>After this step our directory structure looks like:</p>
 <pre><code>.
 ├── archive
 │   └── example
-│       └── 20210617-165842-007944c1
+│       └── 20210922-102118-4ac4205f
 │           ├── mydata.csv
 │           ├── mygraph.png
 │           ├── orderly.yml
@@ -503,13 +503,13 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <h2>Creating a report</h2>
 <p>First, run <code>orderly::orderly_new</code> to create a directory within <code>src</code>. The name is important and should not contain spaces (nor should it change as this will change the key report id and you’ll lose a chain of history), then edit the file <code>orderly.yml</code> within that directory.</p>
 <div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb21-1" title="1">orderly<span class="op">::</span><span class="kw">orderly_new</span>(<span class="st">&quot;new&quot;</span>, <span class="dt">root =</span> path)</a></code></pre></div>
-<pre><code>## Created report at &#39;/tmp/RtmppRdXoQ/file11aaa54d78f6b/src/new&#39;</code></pre>
+<pre><code>## Created report at &#39;/tmp/RtmpLyoPhu/file3f3d1246f4a2c/src/new&#39;</code></pre>
 <pre><code>## Edit the file &#39;orderly.yml&#39; within this directory</code></pre>
 <p>which results in a directory structure like:</p>
 <pre><code>.
 ├── archive
 │   └── example
-│       └── 20210617-165842-007944c1
+│       └── 20210922-102118-4ac4205f
 │           ├── mydata.csv
 │           ├── mygraph.png
 │           ├── orderly.yml
@@ -643,31 +643,32 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <p><code>orderly</code> is designed to work well with <a href="https://git-scm.com/">git</a> (or any other version control system). The general principle is that <code>src/</code> and any configuration files should be added to git, while most of the generated files (<code>data</code>, <code>draft</code>, <code>archive</code>, and any SQLite databases such as <code>orderly.sqlite</code>) should be excluded, which can be done by creating a <code>.gitignore</code> file.</p>
 <p>This process can be automated by running</p>
 <div class="sourceCode" id="cb38"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb38-1" title="1">orderly<span class="op">::</span><span class="kw">orderly_use_gitignore</span>(<span class="dt">root =</span> path, <span class="dt">prompt =</span> <span class="ot">FALSE</span>)</a></code></pre></div>
-<pre><code>## Changes to &#39;/tmp/RtmppRdXoQ/file11aaa54d78f6b/.gitignore&#39;</code></pre>
+<pre><code>## Changes to &#39;/tmp/RtmpLyoPhu/file3f3d1246f4a2c/.gitignore&#39;</code></pre>
 <pre><code>## +  1 | # These are directories where orderly stores (potentially large)
 ## +  2 | # generated files - you definitely do not want these in git.
 ## +  3 | data
 ## +  4 | archive
 ## +  5 | draft
-## +  6 | 
-## +  7 | # Orderly will store data in a sqlite database, by default orderly.sqlite
-## +  8 | *.sqlite
-## +  9 | 
-## + 10 | # It is suggested to use environment variables, in either
-## + 11 | # orderly_envir.yml or .Renviron to store sensitive data to use with
-## + 12 | # orderly - keep those out of git
-## + 13 | .Renviron
-## + 14 | orderly_envir.yml
-## + 15 | 
-## + 16 | # Other good things to exclude
-## + 17 | .Rhistory
-## + 18 | .Rdata
-## + 19 | .Rproj.user
-## + 20 | 
-## + 21 | # Created by orderly.server
-## + 22 | runner
-## + 23 | backup</code></pre>
-<pre><code>## Writing to &#39;/tmp/RtmppRdXoQ/file11aaa54d78f6b/.gitignore&#39;</code></pre>
+## +  6 | metadata
+## +  7 | 
+## +  8 | # Orderly will store data in a sqlite database, by default orderly.sqlite
+## +  9 | *.sqlite
+## + 10 | 
+## + 11 | # It is suggested to use environment variables, in either
+## + 12 | # orderly_envir.yml or .Renviron to store sensitive data to use with
+## + 13 | # orderly - keep those out of git
+## + 14 | .Renviron
+## + 15 | orderly_envir.yml
+## + 16 | 
+## + 17 | # Other good things to exclude
+## + 18 | .Rhistory
+## + 19 | .Rdata
+## + 20 | .Rproj.user
+## + 21 | 
+## + 22 | # Created by orderly.server
+## + 23 | runner
+## + 24 | backup</code></pre>
+<pre><code>## Writing to &#39;/tmp/RtmpLyoPhu/file3f3d1246f4a2c/.gitignore&#39;</code></pre>
 <p>(the default, <code>prompt = TRUE</code> will request user confirmation before writing the <code>.gitignore</code> file).</p>
 <p>You should arrange to back up the entire orderly directory through some other means.</p>
 <p>If your generated files are particularly small you might leave them in git, but in our experience this will result in a git repository that is unpleasant to use.</p>
@@ -870,7 +871,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <pre><code>.
 ├── archive
 │   └── example
-│       └── 20210617-165842-007944c1
+│       └── 20210922-102118-4ac4205f
 │           ├── mydata.csv
 │           ├── mygraph.png
 │           ├── orderly.yml
@@ -903,7 +904,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <p>In order to run this report, we need the file <code>data.csv</code> (which contains the output <code>mydata.csv</code> from the latest version of the <code>example</code> report) to exist. If we wanted to interactively develop the <code>script.R</code> we’d have to run <code>orderly::orderly_run</code> repeatedly, which will be annoying - and impractical if the report is slow to run. So we can run instead:</p>
 <div class="sourceCode" id="cb68"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb68-1" title="1">orderly<span class="op">::</span><span class="kw">orderly_develop_start</span>(<span class="st">&quot;new&quot;</span>, <span class="dt">root =</span> path)</a></code></pre></div>
 <pre><code>## [ name       ]  new</code></pre>
-<pre><code>## [ depends    ]  example@20210617-165842-007944c1:mydata.csv -&gt; data.csv</code></pre>
+<pre><code>## [ depends    ]  example@20210922-102118-4ac4205f:mydata.csv -&gt; data.csv</code></pre>
 <p>which copies in the required artefact and we can then change the directory (using something like <code>setwd(&quot;src/new&quot;)</code>) and start working on the report directly.</p>
 <p>You can see the status of the directory by running</p>
 <div class="sourceCode" id="cb71"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb71-1" title="1">orderly<span class="op">::</span><span class="kw">orderly_develop_status</span>(<span class="st">&quot;new&quot;</span>, <span class="dt">root =</span> path)</a></code></pre></div>
@@ -937,8 +938,8 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <p>If a newer version of the upstream dependency has become available, you can update the file by running <code>orderly::orderly_develop_start()</code> again</p>
 <div class="sourceCode" id="cb79"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb79-1" title="1">id &lt;-<span class="st"> </span>orderly<span class="op">::</span><span class="kw">orderly_run</span>(<span class="st">&quot;example&quot;</span>, <span class="dt">root =</span> path)</a></code></pre></div>
 <pre><code>## [ name       ]  example</code></pre>
-<pre><code>## [ id         ]  20210617-165842-35f75e11</code></pre>
-<pre><code>## [ start      ]  2021-06-17 16:58:42</code></pre>
+<pre><code>## [ id         ]  20210922-102118-82305747</code></pre>
+<pre><code>## [ start      ]  2021-09-22 10:21:18</code></pre>
 <pre><code>## 
 ## &gt; dat &lt;- data.frame(x = 1:10, y = runif(10))
 ## 
@@ -951,20 +952,20 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 ## &gt; dev.off()
 ## png 
 ##   2</code></pre>
-<pre><code>## [ end        ]  2021-06-17 16:58:42</code></pre>
-<pre><code>## [ elapsed    ]  Ran report in 0.006782532 secs</code></pre>
+<pre><code>## [ end        ]  2021-09-22 10:21:18</code></pre>
+<pre><code>## [ elapsed    ]  Ran report in 0.006860733 secs</code></pre>
 <pre><code>## [ artefact   ]  mygraph.png: 55c33b992b51a441675f8d29d7637ae4
 ## [ ...        ]  mydata.csv: cf2749f51ddc331368c20bd9ed659916</code></pre>
 <div class="sourceCode" id="cb88"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb88-1" title="1">orderly<span class="op">::</span><span class="kw">orderly_commit</span>(id, <span class="dt">root =</span> path)</a></code></pre></div>
-<pre><code>## [ commit     ]  example/20210617-165842-35f75e11</code></pre>
+<pre><code>## [ commit     ]  example/20210922-102118-82305747</code></pre>
 <pre><code>## [ copy       ]</code></pre>
-<pre><code>## [ import     ]  example:20210617-165842-35f75e11</code></pre>
+<pre><code>## [ import     ]  example:20210922-102118-82305747</code></pre>
 <pre><code>## [ success    ]  :)</code></pre>
-<pre><code>## [1] &quot;/tmp/RtmppRdXoQ/file11aaa54d78f6b/archive/example/20210617-165842-35f75e11&quot;</code></pre>
+<pre><code>## [1] &quot;/tmp/RtmpLyoPhu/file3f3d1246f4a2c/archive/example/20210922-102118-82305747&quot;</code></pre>
 <div class="sourceCode" id="cb94"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb94-1" title="1">orderly<span class="op">::</span><span class="kw">orderly_develop_start</span>()</a></code></pre></div>
 <pre><code>## [ name       ]  new</code></pre>
-<pre><code>## [ depends    ]  example@20210617-165842-35f75e11:mydata.csv -&gt; data.csv</code></pre>
-<p>(note that this has updated <code>data.csv</code> to use this new id 20210617-165842-35f75e11).</p>
+<pre><code>## [ depends    ]  example@20210922-102118-82305747:mydata.csv -&gt; data.csv</code></pre>
+<p>(note that this has updated <code>data.csv</code> to use this new id 20210922-102118-82305747).</p>
 <p>Finally, you can delete the files that orderly has copied into the source tree:</p>
 <div class="sourceCode" id="cb97"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb97-1" title="1">orderly<span class="op">::</span><span class="kw">orderly_develop_clean</span>()</a>
 <a class="sourceLine" id="cb97-2" title="2"><span class="co">## [ remove     ]  data.csv</span></a>

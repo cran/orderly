@@ -10,35 +10,31 @@
 ##'
 ##' @param path A path, whose interpretation depends on the function:
 ##'
-##' \describe{
+##' `orderly_bundle_pack`: A directory to save bundles to.  If
+##'   it does not exist it will be created for you.
 ##'
-##' \item{\code{orderly_bundle_pack}}{A directory to save bundles to.  If
-##'   it does not exist it will be created for you.}
+##' `orderly_bundle_run`: The path to the packed bundle (a zip
+##'   file created by `orderly_bundle_pack`)
 ##'
-##' \item{\code{orderly_bundle_run}}{The path to the packed bundle (a zip
-##'   file created by \code{orderly_bundle_pack})}
+##' `orderly_bundle_import`: The path to unpack and import
+##'   (a zip file created by `orderly_bundle_run`)
 ##'
-##' \item{\code{orderly_bundle_import}}{The path to unpack and import
-##'   (a zip file created by \code{orderly_bundle_run})}
-##'
-##' \item{\code{orderly_bundle_list}}{The path to a directory that might
+##' `orderly_bundle_list`: The path to a directory that might
 ##'   contain either incomplete or complete bundles (created by either
-##'   \code{orderly_bundle_pack} or \code{orderly_bundle_run})}
-##'
-##' }
+##'   `orderly_bundle_pack` or `orderly_bundle_run`)
 ##'
 ##' @param name Name of the report to pack (see
-##'   \code{\link{orderly_list}}).  A leading \code{src/} will be
-##'   removed if provided, allowing easier use of autocomplete.
+##'   [orderly::orderly_list()].  A leading `src/` will be removed if
+##'   provided, allowing easier use of autocomplete.
 ##'
 ##' @inheritParams orderly_run
 ##'
-##' @return For \code{orderly_bundle_pack} and
-##'   \code{orderly_bundle_run}, a list with elements \code{path} (the
-##'   path to the bundle) and \code{id} (its orderly id).  For
-##'   \code{orderly_bundle_list} a data.frame with key information
+##' @return For `orderly_bundle_pack` and
+##'   `orderly_bundle_run`, a list with elements `path` (the
+##'   path to the bundle) and `id` (its orderly id).  For
+##'   `orderly_bundle_list` a data.frame with key information
 ##'   about the report in the bundles (id, name, parameters, status,
-##'   time).  The function \code{orderly_bundle_import} is called for
+##'   time).  The function `orderly_bundle_import` is called for
 ##'   its side effect only and does not return anything useful.
 ##'
 ##' @export
@@ -83,13 +79,14 @@ orderly_bundle_pack <- function(path, name, parameters = NULL,
 
 ##' @param workdir The path in which to run bundles.  If it does not
 ##'   exist it will be created for you.  The completed bundle will be
-##'   saved in this directory as \code{<id>.zip}.
+##'   saved in this directory as `<id>.zip`.
 ##'
 ##' @inheritParams orderly_run
 ##' @rdname orderly_bundle_pack
 ##' @export
 orderly_bundle_run <- function(path, workdir = tempfile(), echo = TRUE,
-                             envir = NULL) {
+                               envir = NULL) {
+  assert_file_exists(path, check_case = FALSE)
   dir_create(workdir)
 
   info <- orderly_bundle_info(path)
@@ -118,7 +115,7 @@ orderly_bundle_run <- function(path, workdir = tempfile(), echo = TRUE,
 
   zip <- zip_dir(file.path(workdir, id))
   unlink(file.path(workdir, id), recursive = TRUE)
-  list(id = id, path = zip)
+  list(id = id, path = zip, filename = basename(zip))
 }
 
 
@@ -126,6 +123,7 @@ orderly_bundle_run <- function(path, workdir = tempfile(), echo = TRUE,
 ##' @rdname orderly_bundle_pack
 ##' @export
 orderly_bundle_import <- function(path, root = NULL, locate = TRUE) {
+  assert_file_exists(path, check_case = FALSE)
   config <- orderly_config(root, locate)
 
   ## TODO(VIMC-3975): validate the archive before import
@@ -137,7 +135,7 @@ orderly_bundle_import <- function(path, root = NULL, locate = TRUE) {
 
   name <- info$name
   id <- info$id
-  contents <- zip::zip_list(path)$filename
+  contents <- zip_list2(path)$filename
 
   if (!(sprintf("%s/pack/orderly_run.rds", id) %in% contents)) {
     stop("This does not look like a complete bundle (one that has been run)")
@@ -165,6 +163,7 @@ orderly_bundle_import <- function(path, root = NULL, locate = TRUE) {
 ##' @rdname orderly_bundle_pack
 ##' @export
 orderly_bundle_list <- function(path) {
+  assert_file_exists(path, check_case = FALSE)
   f <- function(p) {
     info <- orderly_bundle_info(p)
     status <- orderly_bundle_status(p)
@@ -194,12 +193,12 @@ orderly_bundle_status <- function(path) {
 
 orderly_bundle_complete <- function(path) {
   re <- "^[0-9]{8}-[0-9]{6}-[[:xdigit:]]{8}/pack/orderly_run.rds$"
-  any(grepl(re, zip::zip_list(path)$filename))
+  any(grepl(re, zip_list2(path)$filename))
 }
 
 
 orderly_bundle_info <- function(path) {
-  id <- fs::path_split(zip::zip_list(path)$filename[[1]])[[1]]
+  id <- fs::path_split(zip_list2(path)$filename[[1]])[[1]]
 
   tmp <- tempfile()
   dir_create(tmp)
@@ -212,4 +211,21 @@ orderly_bundle_info <- function(path) {
       stop(sprintf("Failed to extract bundle info from '%s'\n(%s)",
                    path, e$message), call. = FALSE))
   readRDS(file.path(tmp, "info.rds"))
+}
+
+
+## This is a temporary workaround for zip, which has an issue running
+## zip_list on large archives. Fix for zip will be submitted in a PR
+## soon.
+zip_list2 <- function(path) {
+  tryCatch(zip::zip_list(path),
+           error = function(e)
+             tryCatch(zip_list_base(path),
+                      error = function(e2) stop(e)))
+}
+
+
+zip_list_base <- function(path) {
+  list <- utils::unzip(path, list = TRUE)
+  data.frame(filename = list$Name, stringsAsFactors = FALSE)
 }

@@ -259,8 +259,7 @@ orderly_env <- function() {
 session_info <- function(path = ".") {
   list(session_info = utils::sessionInfo(),
        time = Sys.time(),
-       env = orderly_env(),
-       git = git_info(path))
+       env = orderly_env())
 }
 
 ## Because time handling is a total faff:
@@ -321,6 +320,9 @@ git_info <- function(root) {
   if (isTRUE(getOption("orderly.nogit", FALSE))) {
     return(NULL)
   }
+  if (is.null(root) || !file.exists(file.path(root, ".git"))) {
+    return(NULL)
+  }
   sha <- git_info_call(root, c("rev-parse", "HEAD"))
   if (is.null(sha)) {
     return(NULL)
@@ -377,12 +379,12 @@ resolve_env <- function(x, used_in, error = TRUE, default = NULL) {
 }
 
 is_windows <- function() {
-  Sys.info()[["sysname"]] == "Windows"
+  tolower(Sys.info()[["sysname"]]) == "windows"
 }
 
 
 is_linux <- function() {
-  Sys.info()[["sysname"]] == "Linux"
+  tolower(Sys.info()[["sysname"]]) == "linux"
 }
 
 
@@ -478,7 +480,7 @@ file_exists <- function(..., check_case = FALSE, workdir = NULL,
 }
 
 
-file_split_base <- function(filename, lowercase = FALSE) {
+file_split_base <- function(filename) {
   path <- strsplit(filename, "[/\\\\]")[[1L]]
   if (!nzchar(path[[1]])) {
     base <- "/"
@@ -492,9 +494,7 @@ file_split_base <- function(filename, lowercase = FALSE) {
     base <- "."
     absolute <- FALSE
   }
-  if (lowercase) {
-    path <- tolower(path)
-  }
+
   list(path = path[nzchar(path)], base = base, absolute = absolute)
 }
 
@@ -519,20 +519,24 @@ file_has_canonical_case <- function(filename) {
 ## files called Foo and foo next to each other (but not on
 ## windows/mac)
 file_canonical_case <- function(filename) {
-  dat <- file_split_base(filename, TRUE)
+  dat <- file_split_base(filename)
   base <- dat$base
   path <- dat$path
   absolute <- dat$absolute
 
   for (p in dat$path) {
     pos <- dir(base, all.files = TRUE)
-    i <- match(p, tolower(pos))
-    if (is.na(i)) {
-      return(NA_character_)
+    i <- match(tolower(p), tolower(pos))
+    if (!is.na(i)) {
+      p <- pos[[i]]
+    } else if (grepl("~", p, fixed = TRUE)) {
+      ## Windows truncated path, ignore case
     } else {
-      base <- paste(base, pos[[i]], sep = if (absolute) "" else "/")
-      absolute <- FALSE
+      return(NA_character_)
     }
+
+    base <- paste(base, p, sep = if (absolute) "" else "/")
+    absolute <- FALSE
   }
 
   if (grepl("^\\./", base) && !grepl("^\\./", filename)) {

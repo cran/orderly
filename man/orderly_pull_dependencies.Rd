@@ -11,7 +11,8 @@ orderly_pull_dependencies(
   root = NULL,
   locate = TRUE,
   remote = NULL,
-  parameters = NULL
+  parameters = NULL,
+  recursive = TRUE
 )
 
 orderly_pull_archive(
@@ -20,7 +21,8 @@ orderly_pull_archive(
   root = NULL,
   locate = TRUE,
   remote = NULL,
-  parameters = NULL
+  parameters = NULL,
+  recursive = TRUE
 )
 
 orderly_push_archive(
@@ -49,7 +51,7 @@ parents until it finds an \code{orderly_config.yml} file.}
 character string indicating a remote specified in the
 \code{remotes} block of your \code{orderly_config.yml}.  It is
 also possible to pass in a directly created remote object (e.g.,
-using \code{\link{orderly_remote_path}}, or one provided by
+using \code{\link[=orderly_remote_path]{orderly_remote_path()}}, or one provided by
 another package).  If left \code{NULL}, then the default remote
 for this orderly repository is used - by default that is the
 first listed remote.}
@@ -62,12 +64,18 @@ pulling a report that uses query dependencies that reference
 parameters you need to pass them here (the same parameter set
 will be passed through to all dependencies).}
 
+\item{recursive}{Logical, indicating if all dependencies of a
+report should also be pulled. Setting this to \code{FALSE} only
+the direct reports, along with metadata for the dependencies;
+this will be potentially much faster, but leaves your archive in
+a more fragile state.}
+
 \item{id}{The identifier (for \code{orderly_pull_archive}).  The default is
 to use the latest report.}
 }
 \value{
 No return value, these functions are called only for their
-  side effects
+side effects
 }
 \description{
 Download dependent reports from an orderly remote.  This can only
@@ -90,7 +98,7 @@ After setting your username up you can run
 Pulling an archive report from a remote also pulls its
 dependencies (recursively), and adds all of these to the local
 database.  This may require migrating old orderly archives
-(\code{\link{orderly_migrate}}).  Note that this migration will
+(\code{\link[=orderly_migrate]{orderly_migrate()}}).  Note that this migration will
 likely fail for remote orderly versions older than 0.6.8 because
 the migration needs to read data files on disk that are not
 included in the downloaded archive in order to collect all the
@@ -99,7 +107,7 @@ administrator of the remote orderly archive to migrate their
 archive, and then re-pull.
 
 Pushing an archive is possible only if the remote supports it.
-Currently this is supported by \code{\link{orderly_remote_path}}
+Currently this is supported by \code{\link[=orderly_remote_path]{orderly_remote_path()}}
 remotes, though not by orderlyweb remotes.  There is no control
 over what will \emph{accept} a push at this point, nor any check
 that what you've pushed is "good" except that it exists in your
@@ -140,7 +148,7 @@ path_local <- orderly::orderly_example("demo")
 # a copy of the report "other", on which it depends:
 try(orderly::orderly_run("use_dependency", root = path_local))
 
-# We can "pull" depenencies of a report before running
+# We can "pull" dependencies of a report before running
 orderly::orderly_pull_dependencies("use_dependency", remote = remote,
                                    root = path_local)
 
@@ -154,10 +162,10 @@ orderly::orderly_pull_archive("use_dependency", id, remote = remote,
 orderly::orderly_list_archive(root = path_local)
 }
 \seealso{
-\code{\link{orderly_remote_path}}, which implements the
-  remote interface for orderly repositories at a local path.  See
-  also \href{https://github.com/vimc/orderly-web}{OrderlyWeb} for
-  a system for hosting orderly repositories over an HTTP API.
-  \code{vignette("remote", package = "orderly")} describes the
-  remote system in more detail.
+\code{\link[=orderly_remote_path]{orderly_remote_path()}}, which implements the
+remote interface for orderly repositories at a local path.  See
+also \href{https://github.com/vimc/orderly-web}{OrderlyWeb} for a
+system for hosting orderly repositories over an HTTP API.
+\code{vignette("remote", package = "orderly")} describes the
+remote system in more detail.
 }

@@ -380,8 +380,6 @@ test_that("canonical case: path splitting", {
                list(path = c("a", "b", "c"), base = "c:/", absolute = TRUE))
   expect_equal(file_split_base("C:/a/b/c"),
                list(path = c("a", "b", "c"), base = "C:/", absolute = TRUE))
-  expect_equal(file_split_base("C:/A/B/C", TRUE),
-               list(path = c("a", "b", "c"), base = "C:/", absolute = TRUE))
 })
 
 
@@ -839,4 +837,47 @@ test_that("clean_report_name strips slashes and src dir", {
   expect_equal(clean_report_name("test"), "test")
   expect_equal(clean_report_name("test/"), "test")
   expect_equal(clean_report_name("src/test"), "test")
+})
+
+
+test_that("canonical case ignores missing windows truncated elements", {
+  ## There are issues with either mocking or system calls for
+  ## canonical case checking on solaris, but as it is case-sensitive
+  ## the tests are not important.
+  skip_on_solaris()
+  skip_if_not_installed("mockery")
+  mock_dir <- mockery::mock(c("aaa", "aax"),
+                            c("bbb", "bbx"),
+                            c("ccc", "ccx"),
+                            cycle = TRUE)
+  mockery::stub(file_canonical_case, "dir", mock_dir)
+
+  expect_equal(file_canonical_case("aaa/bbb~1/ccc"),
+               "aaa/bbb~1/ccc")
+  expect_equal(file_canonical_case("aaa/BBB~1/ccc"),
+               "aaa/BBB~1/ccc")
+})
+
+
+test_that("git_info skips where .git not found", {
+  skip_on_cran()
+  skip_if_not_installed("mockery")
+  mock_git_info_call <- mockery::mock(NULL, cycle = TRUE)
+  mockery::stub(git_info, "git_info_call", mock_git_info_call)
+
+  root <- tempfile()
+  dir.create(root)
+  on.exit(unlink(root, recursive = TRUE))
+  withr::with_options(
+    list(orderly.nogit = FALSE),
+    expect_null(git_info(root)))
+  mockery::expect_called(mock_git_info_call, 0)
+
+  dir.create(file.path(root, ".git"))
+  withr::with_options(
+    list(orderly.nogit = FALSE),
+    expect_null(git_info(root)))
+  mockery::expect_called(mock_git_info_call, 1)
+  expect_equal(mockery::mock_args(mock_git_info_call)[[1]],
+               list(root, c("rev-parse", "HEAD")))
 })

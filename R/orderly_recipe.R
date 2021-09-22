@@ -211,6 +211,15 @@ recipe_validate_packages <- function(packages, config, filename) {
 recipe_validate_script <- function(script, config, filename) {
   assert_scalar_character(script, sprintf("%s:script", filename))
   assert_file_exists(script, name = "Script file")
+  exprs <- parse(file = script, keep.source = TRUE)
+  for (i in seq_along(exprs)) {
+    if (is_global_rm(exprs[[i]])) {
+      stop(sprintf(
+        "Do not use 'rm(list = ls())' or similar in your script (%s:%s)",
+        script, utils::getSrcLocation(exprs[i], "line")))
+    }
+  }
+
   script
 }
 
@@ -342,6 +351,13 @@ recipe_validate_fields <- function(fields, config, filename) {
     if (config$fields$required[[i]] || !is.null(fields[[nm]])) {
       assert_scalar_character(fields[[nm]], sprintf("%s:%s", filename, nm))
     } else {
+      if (length(fields) == 0L) {
+        ## This is needed in for 3.6 compatibility, as '[[' assignment
+        ## into NULL with 3.6 coerces to character vector, while for
+        ## 4.0 and it coerces to list:
+        ## https://bugs.r-project.org/bugzilla/show_bug.cgi?id=17719
+        fields <- as.list(fields)
+      }
       fields[[nm]] <- NA_character_
     }
   }
@@ -586,4 +602,12 @@ recipe_file_inputs <- function(info) {
     source = file_info(info$sources),
     resource = file_info(info$resources),
     global = file_info(names(info$global_resources)))
+}
+
+
+is_global_rm <- function(expr) {
+  is.recursive(expr) &&
+    identical(expr[[1]], quote(rm)) &&
+    is.recursive(expr[[2]]) &&
+    identical(expr[[2]][[1]], quote(ls))
 }

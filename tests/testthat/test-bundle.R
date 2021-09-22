@@ -17,6 +17,7 @@ test_that("pack bundle", {
   workdir <- tempfile()
   zip <- orderly_bundle_run(res$path, workdir, echo = FALSE)
   expect_equal(dir(workdir), basename(zip$path))
+  expect_equal(dir(workdir), zip$filename)
   orderly_bundle_import(zip$path, root = path2)
 
   expect_equal(orderly_list_archive(path2),
@@ -59,6 +60,7 @@ test_that("can run a bundle in place if wanted", {
 
   zip <- orderly_bundle_run(res$path, path_bundles, echo = FALSE)
   expect_true(same_path(zip$path, res$path))
+  expect_equal(zip$filename, basename(zip$path))
 
   l2 <- orderly_bundle_list(path_bundles)
   l1$status <- "complete"
@@ -317,4 +319,54 @@ test_that("failed bundle run writes out failed rds", {
                "h()")
   expect_match(failed_rds$error$trace[length(failed_rds$error$trace)],
                'stop\\("some error"\\)')
+})
+
+
+test_that("zip list helper safely lists", {
+  skip_on_cran()
+  path <- test_prepare_orderly_example("minimal")
+  on.exit(unlink(path, recursive = TRUE))
+  path_bundles <- tempfile()
+  res <- orderly_bundle_pack(path_bundles, "example", root = path)
+  l1 <- zip::zip_list(res$path)$filename
+  l2 <- zip_list2(res$path)$filename
+  l3 <- zip_list_base(res$path)$filename
+
+  expect_equal(l1, l2)
+  expect_setequal(l3, l1)
+})
+
+
+test_that("fall back error handling", {
+  skip_on_cran()
+  skip_if_not_installed("mockery")
+
+  d <- data.frame(filename = "x")
+  mock_zip_zip_list <- mockery::mock(
+    d,
+    stop("some zip error"),
+    stop("some zip error"))
+  mock_base_zip_list <- mockery::mock(
+    d,
+    stop("some base error"))
+
+  mockery::stub(zip_list2, "zip::zip_list", mock_zip_zip_list)
+  mockery::stub(zip_list2, "zip_list_base", mock_base_zip_list)
+
+  expect_equal(zip_list2("path"), d)
+  mockery::expect_called(mock_zip_zip_list, 1)
+  mockery::expect_called(mock_base_zip_list, 0)
+
+  expect_equal(zip_list2("path"), d)
+  mockery::expect_called(mock_zip_zip_list, 2)
+  mockery::expect_called(mock_base_zip_list, 1)
+
+  expect_error(zip_list2("path"), "some zip error")
+  mockery::expect_called(mock_zip_zip_list, 3)
+  mockery::expect_called(mock_base_zip_list, 2)
+
+  expect_equal(mockery::mock_args(mock_zip_zip_list),
+               rep(list(list("path")), 3))
+  expect_equal(mockery::mock_args(mock_base_zip_list),
+               rep(list(list("path")), 2))
 })

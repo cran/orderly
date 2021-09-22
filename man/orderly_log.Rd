@@ -19,16 +19,14 @@ orderly_log(topic, value)
 }
 \value{
 \code{orderly_log_on} and \code{orderly_log_off} invisibly
-  returns a logical indicating if logging was previously enabled.
-  This allows patterns like:
-
-\preformatted{if (!orderly::orderly_log_off()) {
+returns a logical indicating if logging was previously enabled.
+This allows patterns like:\preformatted{if (!orderly::orderly_log_off()) \{
   on.exit(orderly::orderly_log_on())
-}
+\}
 }
 
 to disable logging within a function (the \code{on.exit} block
-  will be run when the function exits).
+will be run when the function exits).
 }
 \description{
 Start and stop the orderly log.  When active, some actions will
@@ -50,24 +48,6 @@ format, etc.
 # We are going to log things below
 logging_was_enabled <- orderly::orderly_log_on()
 
-path <- orderly::orderly_example("minimal")
-
-# By default we get both orderly log messages (e.g.,
-# "[name] example") and the output of R when it runs the report:
-orderly::orderly_run("example", root = path)
-
-# Passing FALSE to the echo argument suppresses R's output but not
-# orderly messages:
-orderly::orderly_run("example", root = path, echo = FALSE)
-
-# Disabling the log suppresses orderly's messages but still
-# displays R's output:
-orderly::orderly_log_off()
-orderly::orderly_run("example", root = path)
-
-# And using both will prevent all output
-orderly::orderly_run("example", root = path, echo = FALSE)
-
 # About orderly log messages:
 # Orderly log messages have the form "[title] message"
 orderly::orderly_log_on()
@@ -83,6 +63,6 @@ if (logging_was_enabled) {
 }
 }
 \seealso{
-\code{\link{orderly_run}}, which makes use of these log
-  messages
+\code{\link[=orderly_run]{orderly_run()}}, which makes use of these log
+messages
 }
